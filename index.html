@@ -17,7 +17,7 @@
         <div class="book">
             <div class="headers">
                 <img src="./media/INM_Logo.png"/>
-                <button> <img src="./media/love_off.svg"/> </button>   <button> <img src="./media/basket_off.svg"/> </button>   <button> <img src="./media/settings_off.svg"/> </button>
+                <button id="main-wishes-btn"> <img src="./media/love_off.svg"/> </button>   <button id="main-cart-btn"> <img src="./media/basket_off.svg"/> </button>   <button id="main-settings-btn"> <img src="./media/settings_off.svg"/> </button>
             </div>
             <div class="line"></div>
 
@@ -82,6 +82,41 @@
 </div>
 
 <!-- ↑↑↑ Відкрита карточка товара ↑↑↑ -->
+
+
+<!-- ↓↓↓ Бажане та Кошик ↓↓↓ -->
+
+<div id="modal-wishes" class="modal-backdrop">
+    <div class="book">
+        <div class="headers">
+            <img src="./media/INM_Logo.png"/>
+            <button id="modal-wishes-close-btn"> <img src="./media/love_on.svg"/> </button>   
+            <button> <img src="./media/basket_off.svg"/> </button>   
+            <button> <img src="./media/settings_off.svg"/> </button>
+        </div>
+        <div class="line"></div>
+        <div class="modal-sub-title">
+            <span>Бажане</span>
+        </div>
+    </div>
+</div>
+
+<div id="modal-cart" class="modal-backdrop">
+    <div class="book">
+        <div class="headers">
+            <img src="./media/INM_Logo.png"/>
+            <button> <img src="./media/love_off.svg"/> </button>   
+            <button id="modal-cart-close-btn"> <img src="./media/basket_on.svg"/> </button>   
+            <button> <img src="./media/settings_off.svg"/> </button>
+        </div>
+        <div class="line"></div>
+        <div class="modal-sub-title">
+            <span>Кошик</span>
+        </div>
+    </div>
+</div>
+
+<!-- ↑↑↑ Бажане та Кошик ↑↑↑ -->
 
 
 
