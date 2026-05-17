@@ -350,8 +350,468 @@ background: linear-gradient(146deg, rgba(230, 230, 230, 1) 0%, rgba(179, 179, 17
     }
 }
 
+.buy_button{
+    width: 250px;
+    height: 35px;
+    border-radius: 10px;
+    background-color: rgb(83, 83, 255);
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    margin: 10px;
+    font-size: 15px;
+}
+
 /* ↑↑↑ Бажане та Кошик ↑↑↑ */
 
 
 
+/* ↓↓↓ Налаштування ↓↓↓ */
+
+.settings-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1001; /* Поверх всего */
+    display: none; /* Скрыто по умолчанию */
+}
+
+.settings-backdrop.active {
+    display: block;
+}
+
+.settings-panel {
+    position: absolute;
+    width: 320px;
+    background-color: #5b5b5b; /* Темный фон из макета */
+    border-radius: 15px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    
+    /* Позиционирование справа сверху относительно .book */
+    /* 350px - половина книги (700/2). 20px - отступ от края */
+    top: 80px; 
+    right: max(10px, calc(50vw - 350px + 20px)); 
+}
+
+.settings-row {
+    background-color: #888888; /* Цвет блоков внутри меню */
+    border-radius: 12px;
+    padding: 12px 15px;
+    display: flex;
+    align-items: center;
+    color: black;
+    font-family: sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+/* Блок профиля */
+.user-row {
+    gap: 15px;
+}
+.user-avatar {
+    background-color: #ccc;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Блок тем */
+.theme-row {
+    justify-content: space-between;
+    cursor: default; /* На саму строку кликать не нужно, только на кнопки */
+}
+
+.theme-btn {
+    width: 35px;
+    height: 35px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.theme-btn.light-btn { background-color: #b3b3b3; }
+.theme-btn.dark-btn { background-color: #3b3b3b; }
+
+/* Активная тема (зеленая рамка) */
+.theme-btn.active {
+    border: 3px solid #00ff00;
+}
+
+/* Блок инфо */
+.info-row {
+    justify-content: center;
+}
+
+/* Мобильная адаптация настроек */
+@media (max-width: 740px) {
+    .settings-panel {
+        right: 50%;
+        transform: translateX(50%); /* Центрирование сверху */
+    }
+}
+
+/* ↓↓↓ СВЕТЛАЯ ТЕМА (Light Mode) ↓↓↓ */
+
+body.light-mode {
+    /* Градиент из ваших комментариев */
+    background: #e6e6e6;
+    background: linear-gradient(146deg, rgba(230, 230, 230, 1) 0%, rgba(179, 179, 179, 1) 100%);
+}
+
+/* Перекрашиваем подложку (book) в серый цвет как на 2-3 скрине */
+body.light-mode .book {
+    background-color: rgba(0, 0, 0, 0.4); 
+}
+
+/* Карточки и модалки делаем светлее, чтобы текст читался лучше */
+body.light-mode .card,
+body.light-mode .modal-info,
+body.light-mode .modal-desc {
+    background-color: rgba(255, 255, 255, 0.5); 
+}
+
+/* Инвертируем цвета панели настроек в светлой теме */
+body.light-mode .settings-panel {
+    background-color: #d1d1d1;
+}
+body.light-mode .settings-row {
+    background-color: #a8a8a8;
+}
+
+/* ↑↑↑ Налаштування ↑↑↑ */
+
+
+
+
+/* ↓↓↓ Оформлення покупки ↓↓↓ */
+
+/* ↓↓↓ Оформлення замовлення (checkout) ↓↓↓ */
+
+/* Контейнер модального окна */
+.checkout-modal {
+    background-color: #737373; /* Фон модалки из макета */
+    width: 420px;
+    padding: 20px;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-sizing: border-box;
+    /* Safety: не даем модалке быть больше 90% высоты экрана */
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* ↑↑↑ БЛОК 1: Контейнер для товаров (The Rigid Containment Box) ↑↑↑ */
+.checkout-items-container {
+    max-height: 180px; /* Rigid-высота под 2.5-3 товара, дальше включается скролл */
+    overflow-y: auto; /* Скролл появляется только здесь */
+    
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    
+    background-color: #a3a3a3; /* Серый фон блока товаров из макета */
+    border-radius: 12px;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+/* Стилизация скроллбара (аккуратно и тонко) */
+.checkout-items-container::-webkit-scrollbar {
+    width: 6px;
+}
+.checkout-items-container::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+}
+
+/* КАРТОЧКА ТОВАРА (строки width 100% внутри скроллбокса) */
+.checkout-item {
+    display: flex;
+    align-items: center;
+    position: relative;
+    box-sizing: border-box;
+    padding-right: 35px; /* Место под крестик */
+    color: #000;
+    font-family: sans-serif;
+    font-size: 14px;
+}
+
+/* Если товаров больше 1, добавляем разделитель */
+.checkout-item:not(:last-child) {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    padding-bottom: 10px;
+}
+
+.checkout-item img {
+    width: 60px;
+    height: 44px;
+    object-fit: cover;
+    border-radius: 6px;
+    margin-right: 12px;
+}
+
+.checkout-item-info {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+/* Кнопка удаления (красный крестик) */
+.checkout-item-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    position: absolute;
+    right: 0px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+
+.checkout-item-delete svg {
+    width: 20px;
+    height: 20px;
+    fill: #ef4444; /* Красный крестик */
+}
+
+/* ↑↑↑ БЛОК 2: Плашка суммы (Sister element stacked in flex) ↑↑↑ */
+.checkout-total {
+    background-color: #8c8c8c;
+    padding: 12px;
+    border-radius: 10px;
+    color: #000;
+    font-weight: bold;
+    font-size: 15px;
+    margin-top: -2px; /* Легкое наложение для слияния визуального */
+}
+
+/* ↑↑↑ БЛОК 3: Форма и Кнопки (stacked in flex, never overlaps products) ↑↑↑ */
+#checkout-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#checkout-form input[type="text"],
+#checkout-form input[type="tel"],
+#checkout-form input[type="email"] {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background-color: #a3a3a3; /* Поля ввода */
+    color: #000;
+    outline: none;
+    box-sizing: border-box;
+}
+
+#checkout-form input::placeholder {
+    color: #444;
+}
+
+/* Блок выбора почты */
+.checkout-delivery {
+    background-color: #a3a3a3;
+    padding: 12px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.checkout-delivery label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+    color: #000;
+}
+
+/* Кастомные радио-кнопки (в виде квадратов) */
+.checkout-delivery input[type="radio"] {
+    display: none;
+}
+.custom-radio {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #555;
+    border-radius: 4px;
+    margin-right: 10px;
+    display: inline-block;
+    position: relative;
+    background-color: #8c8c8c;
+}
+.checkout-delivery input[type="radio"]:checked + .custom-radio {
+    background-color: #3b82f6; /* Синий цвет при выборе */
+    border-color: #2563eb;
+}
+
+/* Кнопки управления */
+.checkout-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 6px;
+}
+
+.checkout-buttons button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background-color: #3b82f6; /* Кнопки синие */
+    color: #000;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.checkout-buttons button:hover {
+    background-color: #2563eb;
+}
+
+/* ↑↑↑ Зона модальних вікон оформлення замовлення (checkout) ↑↑↑ */
+
+/* ↑↑↑ Оформлення покупки ↑↑↑ */
+
+
 /* ↑↑↑ Зона модальних вікон ↑↑↑ */
+
+
+
+
+
+/* ↓↓↓ Вікно додавання товару ↓↓↓ */
+
+.add-item-modal {
+    background-color: #737373; /* Той самий фон */
+    width: 420px;
+    padding: 20px;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-sizing: border-box;
+}
+
+/* Контейнер для фото */
+.photo-preview-container {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap; /* Дозволяє елементам переноситись на новий рядок */
+    background-color: #a3a3a3; /* Сірий фон блоку */
+    padding: 10px;
+    border-radius: 12px;
+    min-height: 80px;
+    box-sizing: border-box;
+}
+
+/* Додане фото */
+.photo-preview {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    object-fit: cover; /* Щоб фото не сплющувалось */
+}
+
+/* Кнопка плюсика */
+.add-photo-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    background-color: #8c8c8c;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.add-photo-btn:hover {
+    background-color: #555;
+}
+
+.add-photo-btn svg {
+    width: 30px;
+    height: 30px;
+    fill: #000;
+}
+
+/* Поля вводу */
+#add-item-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#add-item-form input,
+#add-item-form textarea {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background-color: #a3a3a3;
+    color: #000;
+    outline: none;
+    box-sizing: border-box;
+    font-family: inherit; /* Щоб шрифт textarea не відрізнявся */
+}
+
+#add-item-form textarea {
+    resize: none; /* Забороняємо розтягувати мишкою */
+}
+
+#add-item-form input::placeholder,
+#add-item-form textarea::placeholder {
+    color: #444;
+}
+
+/* Кнопки */
+.add-item-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 6px;
+}
+
+.add-item-buttons button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    color: #000;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+#add-btn-cancel {
+    background-color: #8c8c8c; /* Нейтральний сірий для відміни */
+}
+
+#add-btn-cancel:hover {
+    background-color: #555;
+    color: #fff;
+}
+
+#add-btn-create {
+    background-color: #3b82f6; /* Синій як в оформленні */
+}
+
+#add-btn-create:hover {
+    background-color: #2563eb;
+}

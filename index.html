@@ -91,12 +91,15 @@
         <div class="headers">
             <img src="./media/INM_Logo.png"/>
             <button id="modal-wishes-close-btn"> <img src="./media/love_on.svg"/> </button>   
-            <button> <img src="./media/basket_off.svg"/> </button>   
-            <button> <img src="./media/settings_off.svg"/> </button>
+            <button id="main-cart-btn"> <img src="./media/basket_off.svg"/> </button>   
+            <button id="main-settings-btn"> <img src="./media/settings_off.svg"/> </button>
         </div>
         <div class="line"></div>
         <div class="modal-sub-title">
             <span>Бажане</span>
+
+        <div class="list"></div>
+
         </div>
     </div>
 </div>
@@ -105,13 +108,18 @@
     <div class="book">
         <div class="headers">
             <img src="./media/INM_Logo.png"/>
-            <button> <img src="./media/love_off.svg"/> </button>   
+            <button id="main-wishes-btn"> <img src="./media/love_off.svg"/> </button>   
             <button id="modal-cart-close-btn"> <img src="./media/basket_on.svg"/> </button>   
-            <button> <img src="./media/settings_off.svg"/> </button>
+            <button id="main-settings-btn"> <img src="./media/settings_off.svg"/> </button>
         </div>
         <div class="line"></div>
         <div class="modal-sub-title">
             <span>Кошик</span>
+
+        <div class="list"></div>
+
+        <button class="buy_button" id="buy"> Оформити покупку </button>
+
         </div>
     </div>
 </div>
@@ -119,6 +127,108 @@
 <!-- ↑↑↑ Бажане та Кошик ↑↑↑ -->
 
 
+
+<!-- ↓↓↓ Налаштування ↓↓↓ -->
+
+<div id="modal-settings" class="settings-backdrop">
+    <div class="settings-panel">
+        
+        <div class="settings-row user-row" onclick="/* Логика входа */">
+            <div class="user-avatar">
+    <img src="./media/profile.svg" alt="Avatar" width="35px" height="35px">
+</div>
+            <span id="user-name">Увійти</span>
+        </div>
+        
+        <div class="settings-row theme-row">
+            <div class="theme-btn light-btn" data-theme="light"></div>
+            <span>Світла / Темна тема</span>
+            <div class="theme-btn dark-btn" data-theme="dark"></div>
+        </div>
+        
+        <div class="settings-row info-row" onclick="/* Ссылка на информацию */">
+            <span>Інформація</span>
+        </div>
+
+    </div>
+</div>
+
+<!-- ↑↑↑ Налаштування ↑↑↑ -->
+
+
+
+<!-- ↓↓↓ Оформлення покупки ↓↓↓ -->
+
+<div id="checkout-backdrop" class="modal-backdrop">
+    <div class="checkout-modal">
+        <div id="checkout-items-container" class="checkout-items-container">
+            </div>
+        
+        <div class="checkout-total">
+            Сума - <span id="checkout-total-sum">0</span>₴
+        </div>
+
+        <form id="checkout-form">
+            <input type="text" id="checkout-name" placeholder="ПІБ" required>
+            <input type="tel" id="checkout-phone" placeholder="Номер телефону" required>
+            <input type="email" id="checkout-email" placeholder="Електронна пошта (не обов'язково)">
+            <input type="text" id="checkout-city" placeholder="Місто" required>
+
+            <div class="checkout-delivery">
+                <label>
+                    <input type="radio" name="delivery" value="nova" checked>
+                    <span class="custom-radio"></span> Нова пошта
+                </label>
+                <label>
+                    <input type="radio" name="delivery" value="ukr">
+                    <span class="custom-radio"></span> Укр пошта
+                </label>
+                <label>
+                    <input type="radio" name="delivery" value="meest">
+                    <span class="custom-radio"></span> Meest пошта
+                </label>
+            </div>
+
+            <input type="text" id="checkout-branch" placeholder="Номер відділення або номер поштомату" required>
+
+            <div class="checkout-buttons">
+                <button type="button" id="checkout-btn-back">Повернутись назад</button>
+                <button type="submit" id="checkout-btn-confirm">Підтвердити замовлення</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ↑↑↑ Оформлення покупки ↑↑↑ -->
+
+
+
+<div id="add-item-backdrop" class="modal-backdrop">
+    <div class="add-item-modal">
+        
+        <div class="add-photo-section">
+            <div id="photo-preview-container" class="photo-preview-container">
+                <label id="add-photo-btn" class="add-photo-btn">
+                    <input type="file" id="photo-input" accept="image/*" multiple hidden>
+                    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                </label>
+            </div>
+        </div>
+
+        <form id="add-item-form">
+            <input type="text" id="add-name" placeholder="Назва" required>
+            <textarea id="add-desc" placeholder="Опис" rows="3" required></textarea>
+            <input type="number" id="add-price" placeholder="Ціна" required>
+            <input type="number" id="add-qty" placeholder="Кількість (для статуса)" required>
+            <input type="url" id="add-link" placeholder="Посилання (для олх варіанта)">
+
+            <div class="add-item-buttons">
+                <button type="button" id="add-btn-cancel">Скасувати</button>
+                <button type="submit" id="add-btn-create">Створити</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <!-- ↑↑↑ Зона модальних вікон ↑↑↑ -->
 
