@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INM_StoreLanding_Store</title>
+
+    <link rel="icon" href="./media/INM_Logo.png">
+    <link rel="stylesheet" href="./style.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Jura&family=Kalam&family=Pacifico&family=Roboto+Mono&display=swap" rel="stylesheet">
+    <link  href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+
+    
+</head>
+    <body>
+        <div class="book">
+            <div class="headers">
+                <img src="./media/INM_Logo.png"/>
+                <button> <img src="./media/love_off.svg"/> </button>   <button> <img src="./media/basket_off.svg"/> </button>   <button> <img src="./media/settings_off.svg"/> </button>
+            </div>
+            <div class="line"></div>
+
+            <div class="list">
+
+                <div id="card" class="card">
+                    <div class="card-img-wrapper">
+                        <img id="product-img" src="./media/no-photo.png" alt="Товар">
+                    </div>
+                    <div class="card-info">
+                        <div class="info-left">
+                            <span id="product-name">“Назва”</span>
+                            <span id="product-status">Статус</span>
+                        </div>
+                        <div class="info-right">
+                            <span id="product-price">Ціна - 000₴</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+<!-- ↓↓↓ Зона модальних вікон ↓↓↓ -->
+
+<!-- ↓↓↓ Відкрита карточка товара ↓↓↓ -->
+
+<div id="modal-backdrop" class="modal-backdrop">
+    <div class="modal-content">
+        <div class="modal-top">
+            <div class="modal-img-wrapper">
+                <img id="modal-img" src="./media/no-photo.png" alt="Товар">
+            </div>
+            <div class="modal-info">
+                <span id="modal-name">“Назва”</span>
+                <div class="modal-price-status">
+                    <span id="modal-price">Ціна - 000₴</span>
+                    <span id="modal-status">Статус</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-desc" id="modal-description">
+            “Опис”
+        </div>
+
+        <div class="modal-actions">
+            <div class="icon-buttons">
+                <button id="modal-basket">
+                    <img src="./media/basket_off.svg" alt="basket">
+                </button>
+                <button id="modal-heart">
+                    <img src="./media/love_off.svg" alt="heart">
+                </button>
+            </div>
+            <div class="text-buttons">
+                <button id="modal-buy-1click">Замовити в 1 клік</button>
+                <button id="modal-buy-olx">Замовити через OLX</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ↑↑↑ Відкрита карточка товара ↑↑↑ -->
+
+
+
+<!-- ↑↑↑ Зона модальних вікон ↑↑↑ -->
+
+    </body>
+        <script src="script.js" defer></script>
+</html>
+

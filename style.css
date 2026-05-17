@@ -1,0 +1,296 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+    width: 100%;
+    }
+
+body{
+    background: #4a4a4a;
+    background: linear-gradient(146deg, rgba(74, 74, 74, 1) 0%, rgba(0, 0, 0, 1) 100%);
+    justify-content: center; 
+    align-items: center;         
+}
+
+.book {
+    max-width: 700px;
+    width: calc(100% - 10px);
+    margin: 15px auto 5px;
+    height: 800px;
+    background-color: rgba(255, 255, 255, 0.089);
+    border-radius: 15px;
+}
+
+.headers{
+    display: flex;
+    img{
+        width: 70px;
+    }
+
+    button{
+        width: 50px;
+        height: 50px;
+        margin: 5px;
+        background-color: rgba(255, 255, 255, 0.400);
+        border-radius: 10px;
+        margin-top: 10px;
+
+        img{
+            width: 30px;
+        }
+    }
+
+    button:first-of-type {
+        margin-left: auto;
+    }
+}
+
+.line{
+    width: 100%;
+    height: 3px;
+    background-color: white;
+}
+
+.list {
+    display: flex;
+    flex-wrap: wrap;        
+    justify-content: center; 
+    gap: 20px;             
+    padding: 20px;           
+    box-sizing: border-box;
+}
+
+.card {
+    flex: 1 1 280px;         
+    max-width: 310px;        
+    background-color: rgba(255, 255, 255, 0.308); /* Серый полупрозрачный фон */
+    border-radius: 20px;
+    padding: 12px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 12px; /* Расстояние между картинкой и текстом */
+
+    .card-img-wrapper {
+        width: 100%;
+        border: 2px solid #000000; /* Черная рамка вокруг фото */
+        border-radius: 14px;
+        overflow: hidden;
+        display: flex;
+
+        img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+    }
+
+    .card-info {
+        display: flex;
+        justify-content: space-between; /* Разносит левую и правую часть по краям */
+        align-items: flex-end;         /* Выравнивает "Статус" и "Цену" по нижней линии */
+        color: #000000;                /* Черный цвет текста из макета */
+        font-family: sans-serif;
+        padding: 0 4px;
+
+        .info-left {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+
+            #product-name {
+                font-size: 18px;
+                font-weight: 500;
+            }
+
+            #product-status {
+                font-size: 16px;
+            }
+        }
+
+        .info-right {
+            #product-price {
+                font-size: 16px;
+                white-space: nowrap; /* Запрещает перенос валюты на новую строку */
+            }
+        }
+    }
+}
+
+/* background: #e6e6e6;
+background: linear-gradient(146deg, rgba(230, 230, 230, 1) 0%, rgba(179, 179, 179, 1) 100%); */
+
+
+
+/* ↓↓↓ Зона модальних вікон ↓↓↓ */
+
+
+/* ↓↓↓ Відкрита карточка товара ↓↓↓ */
+
+/* Темный размытый фон на весь экран */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px); /* Размытие заднего фона */
+    display: none; /* Скрыто по умолчанию */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* Класс для показа модалки */
+.modal-backdrop.active {
+    display: flex;
+}
+
+/* Главный контейнер модального окна */
+.modal-content {
+    background-color: #5b5b5b; /* Цвет из макета */
+    border-radius: 20px;
+    padding: 20px;
+    width: 90%;
+    max-width: 700px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    box-sizing: border-box;
+}
+
+/* --- Десктопная сетка --- */
+
+.modal-top {
+    display: flex;
+    gap: 20px;
+}
+
+.modal-img-wrapper {
+    flex: 1;
+    border: 2px solid #000;
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+}
+
+.modal-img-wrapper img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.modal-info {
+    flex: 1;
+    background-color: rgba(255, 255, 255, 0.25);
+    border-radius: 14px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    color: #000;
+    font-family: sans-serif;
+}
+
+#modal-name {
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.modal-price-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.modal-desc {
+    background-color: rgba(255, 255, 255, 0.25);
+    border-radius: 14px;
+    padding: 15px;
+    min-height: 100px;
+    color: #000;
+    font-family: sans-serif;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.icon-buttons, .text-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.modal-actions button {
+    background-color: rgba(255, 255, 255, 0.35);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #000;
+    font-family: sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.icon-buttons button {
+    width: 50px;
+    height: 50px;
+}
+
+.icon-buttons button img {
+    width: 30px;
+}
+
+.text-buttons button {
+    padding: 15px 20px;
+}
+
+/* --- Адаптивность под мобильные (по макету Desktop - 4) --- */
+
+@media (max-width: 600px) {
+    .modal-top {
+        flex-direction: column; /* Картинка сверху, инфо снизу */
+    }
+
+    .modal-actions {
+        flex-direction: column-reverse; /* Текстовые кнопки прыгают наверх */
+        align-items: stretch;
+        gap: 15px;
+    }
+
+    .text-buttons {
+        justify-content: space-between;
+    }
+
+    .text-buttons button {
+        flex: 1; /* Кнопки заказа делят ширину 50/50 */
+        padding: 12px 10px;
+        font-size: 13px;
+    }
+
+    .icon-buttons {
+        justify-content: flex-start; /* Иконки остаются слева снизу */
+    }
+}
+
+/* ↑↑↑ Відкрита карточка товара ↑↑↑ */
+
+
+
+
+
+
+
+/* ↑↑↑ Зона модальних вікон ↑↑↑ */
