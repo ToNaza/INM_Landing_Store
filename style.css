@@ -377,6 +377,8 @@ background: linear-gradient(146deg, rgba(230, 230, 230, 1) 0%, rgba(179, 179, 17
     height: 100vh;
     z-index: 1001; /* Поверх всего */
     display: none; /* Скрыто по умолчанию */
+        background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
 }
 
 .settings-backdrop.active {
