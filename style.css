@@ -22,7 +22,8 @@ body{
     max-width: 700px;
     width: calc(100% - 10px);
     margin: 15px auto 5px;
-    height: 800px;
+    height: 90%;
+    min-height: 700px;
     background-color: rgba(255, 255, 255, 0.089);
     border-radius: 15px;
 }
@@ -351,15 +352,15 @@ background: linear-gradient(146deg, rgba(230, 230, 230, 1) 0%, rgba(179, 179, 17
 }
 
 .buy_button{
-    width: 250px;
+    width: 200px;
     height: 35px;
     border-radius: 10px;
     background-color: rgb(83, 83, 255);
     position: absolute;
     right: 0;
-    bottom: 0;
-    margin: 10px;
+    margin: 5px;
     font-size: 15px;
+    margin-top: -3px;
 }
 
 /* ↑↑↑ Бажане та Кошик ↑↑↑ */
