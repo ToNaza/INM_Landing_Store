@@ -353,9 +353,13 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
         checkoutItems = [];
         updateListsUI();
         checkoutBackdrop.classList.remove('active');
-    } catch (err) {
-        console.error("Помилка відправки в ТГ:", err);
-        alert('Сталася помилка. Спробуйте ще раз.');
+} catch (err) {
+        console.error("Помилка при збереженні товару:", err);
+        // Тепер виведе точну причину відмови сервера
+        alert(`Не вдалося зберегти: ${err.message || err.code || err}`);
+    } finally {
+        createBtn.disabled = false;
+        createBtn.textContent = (typeof editingProductId !== 'undefined' && editingProductId) ? "Зберегти" : "Створити";
     }
 });
 
