@@ -6,12 +6,12 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 // Конфигурация Firebase (Вставь свои данные из консоли Firebase)
 const firebaseConfig = {
-    apiKey: "YOUR_FIREBASE_API_KEY",
-    authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
-    projectId: "YOUR_FIREBASE_PROJECT_ID",
-    storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
-    appId: "YOUR_FIREBASE_APP_ID"
+    apiKey: "AIzaSyCqYzKEVWops5qTt1Iw_qvm6b42VhuFgaA",
+    authDomain: "inmlandingshop.firebaseapp.com",
+    projectId: "inmlandingshop",
+    storageBucket: "inmlandingshop.firebasestorage.app",
+    messagingSenderId: "56300741868",
+    appId: "1:56300741868:web:e5a90e942a81d7424031c9"
 };
 
 // Инициализация Firebase
@@ -26,8 +26,8 @@ const SUPABASE_KEY = "sb_publishable_Xbtp8BJos4Vmh22pcVuUMg_HQGuFS1s";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Конфигурация Telegram и Админки
-const TG_BOT_TOKEN = 'ТВОЙ_ТОКЕН_ТГ_БОТА';
-const TG_CHAT_ID = 'ТВОЙ_ЧАТ_ИД_В_ТГ'; 
+const TG_BOT_TOKEN = '8810566355:AAGya-exuy_8cDHY8YzDiZLH0refamQcwTQ';
+const TG_CHAT_ID = '-5289386929'; 
 const ADMIN_UID = "СЮДА_ВСТАВЬ_СВОЙ_UID_ИЗ_FIREBASE_AUTH"; // Появится после первого входа
 
 // Локальное состояние
@@ -284,11 +284,11 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
                     `💰 *Всього до сплати:* ${totalSum}₴`;
 
     try {
-        await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
+        await fetch(`https://api.telegram.org/bot8810566355:AAGya-exuy_8cDHY8YzDiZLH0refamQcwTQ/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                chat_id: TG_CHAT_ID,
+                chat_id: -5289386929,
                 text: message,
                 parse_mode: 'Markdown'
             })
