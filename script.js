@@ -254,36 +254,34 @@ photoInput.addEventListener('change', (e) => {
 
 document.getElementById('add-item-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
-    // 1. Проверяем, не слетела ли авторизация админа в момент отправки
-    console.log("Попытка создания. Ваш UID:", currentUser?.uid, "Ожидаемый UID админа:", ADMIN_UID);
+    if (!currentUser || currentUser.uid !== ADMIN_UID) return;
 
-    if (!currentUser || currentUser.uid !== ADMIN_UID) {
-        alert("Действие заблокировано: код не видит в вас админа. Проверьте консоль.");
-        return;
-    }
-
+    // Исправленный селектор по ID вместо класса
     const createBtn = document.getElementById('add-btn-create');
+    if (!createBtn) return console.error("Кнопка #add-btn-create не найдена в HTML");
+
     createBtn.disabled = true;
     createBtn.textContent = "Завантаження...";
 
     try {
         const imageUrls = [];
-        console.log("Файлов к загрузке в Supabase:", uploadedFiles.length);
-        
-        // 2. Загрузка картинок
+
+        // Цикл загрузки картинок в Supabase Storage
         for (const file of uploadedFiles) {
             const fileExt = file.name.split('.').pop();
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-            
-            console.log("Загрузка файла:", fileName);
-            const { data, error } = await supabase.storage.from('product-images').upload(fileName, file);
-            if (error) {
-                console.error("Ошибка Supabase Storage:", error);
-                throw error;
-            }
-            
-            const { data: publicUrlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+
+            const { data, error } = await supabase.storage
+                .from('product-images')
+                .upload(fileName, file);
+
+            if (error) throw error;
+
+            // Получаем публичную прямую ссылку на файл
+            const { data: publicUrlData } = supabase.storage
+                .from('product-images')
+                .getPublicUrl(fileName);
+
             imageUrls.push(publicUrlData.publicUrl);
         }
 
@@ -295,30 +293,22 @@ document.getElementById('add-item-form').addEventListener('submit', async (e) =>
             olxLink: document.getElementById('add-link').value || ""
         };
 
-        if (imageUrls.length > 0) {
-            productData.images = imageUrls;
-        } else if (!editingProductId) {
-            productData.images = [];
-        }
-
-        console.log("Сохранение в Firebase Firestore...", productData);
-
-        // 3. Запись в Firestore
-        if (editingProductId) {
+        // Если редактируем — обновляем, если нет — создаем новый
+        if (typeof editingProductId !== 'undefined' && editingProductId) {
+            if (imageUrls.length > 0) productData.images = imageUrls;
             await updateDoc(doc(db, "products", editingProductId), productData);
-            console.log("Успешно обновлено!");
         } else {
+            productData.images = imageUrls;
             await addDoc(collection(db, "products"), productData);
-            console.log("Успешно создано!");
         }
 
         closeAddItemModal();
     } catch (err) {
-        console.error("Полный лог ошибки:", err);
-        alert(`Ошибка при сохранении: ${err.message || err}`);
+        console.error("Помилка при збереженні товару:", err);
+        alert("Не вдалося зберегти товар. Перевірте консоль.");
     } finally {
         createBtn.disabled = false;
-        createBtn.textContent = editingProductId ? "Зберегти" : "Створити";
+        createBtn.textContent = (typeof editingProductId !== 'undefined' && editingProductId) ? "Зберегти" : "Створити";
     }
 });
 
