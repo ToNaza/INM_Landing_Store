@@ -254,7 +254,14 @@ photoInput.addEventListener('change', (e) => {
 
 document.getElementById('add-item-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!currentUser || currentUser.uid !== ADMIN_UID) return;
+    
+    // 1. Проверяем, не слетела ли авторизация админа в момент отправки
+    console.log("Попытка создания. Ваш UID:", currentUser?.uid, "Ожидаемый UID админа:", ADMIN_UID);
+
+    if (!currentUser || currentUser.uid !== ADMIN_UID) {
+        alert("Действие заблокировано: код не видит в вас админа. Проверьте консоль.");
+        return;
+    }
 
     const createBtn = document.getElementById('add-btn-create');
     createBtn.disabled = true;
@@ -262,12 +269,20 @@ document.getElementById('add-item-form').addEventListener('submit', async (e) =>
 
     try {
         const imageUrls = [];
+        console.log("Файлов к загрузке в Supabase:", uploadedFiles.length);
         
+        // 2. Загрузка картинок
         for (const file of uploadedFiles) {
             const fileExt = file.name.split('.').pop();
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+            
+            console.log("Загрузка файла:", fileName);
             const { data, error } = await supabase.storage.from('product-images').upload(fileName, file);
-            if (error) throw error;
+            if (error) {
+                console.error("Ошибка Supabase Storage:", error);
+                throw error;
+            }
+            
             const { data: publicUrlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
             imageUrls.push(publicUrlData.publicUrl);
         }
@@ -280,23 +295,27 @@ document.getElementById('add-item-form').addEventListener('submit', async (e) =>
             olxLink: document.getElementById('add-link').value || ""
         };
 
-        // Если загружены новые фото — перезаписываем их. Если нет — оставляем старые.
         if (imageUrls.length > 0) {
             productData.images = imageUrls;
         } else if (!editingProductId) {
             productData.images = [];
         }
 
+        console.log("Сохранение в Firebase Firestore...", productData);
+
+        // 3. Запись в Firestore
         if (editingProductId) {
             await updateDoc(doc(db, "products", editingProductId), productData);
+            console.log("Успешно обновлено!");
         } else {
             await addDoc(collection(db, "products"), productData);
+            console.log("Успешно создано!");
         }
 
         closeAddItemModal();
     } catch (err) {
-        console.error("Помилка:", err);
-        alert("Не вдалося зберегти товар.");
+        console.error("Полный лог ошибки:", err);
+        alert(`Ошибка при сохранении: ${err.message || err}`);
     } finally {
         createBtn.disabled = false;
         createBtn.textContent = editingProductId ? "Зберегти" : "Створити";
