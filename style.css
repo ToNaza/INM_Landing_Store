@@ -423,10 +423,13 @@ background: linear-gradient(146deg, rgba(230, 230, 230, 1) 0%, rgba(179, 179, 17
     border-radius: 50%;
     width: 45px;
     height: 45px;
-    border-radius: 100px;
     display: flex;
     justify-content: center;
     align-items: center;
+
+    img{
+        border-radius: 100px;
+    }
 }
 
 /* Блок тем */

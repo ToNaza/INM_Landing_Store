@@ -68,10 +68,13 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// Открытие админки по Shift + A
 document.addEventListener('keydown', (event) => {
     if (event.shiftKey && event.code === 'KeyA') {
         event.preventDefault();
+        
+        // ДОБАВЬ ЭТУ СТРОКУ ДЛЯ ПРОВЕРКИ:
+        console.log("Мой UID в браузере:", currentUser?.uid, "UID админа в коде:", ADMIN_UID);
+
         if (currentUser && currentUser.uid === ADMIN_UID) {
             addItemBackdrop.classList.add('active');
         } else {
