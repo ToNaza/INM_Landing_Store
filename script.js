@@ -28,7 +28,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 // Конфигурация Telegram и Админки
 const TG_BOT_TOKEN = '8810566355:AAGya-exuy_8cDHY8YzDiZLH0refamQcwTQ';
 const TG_CHAT_ID = '-5289386929'; 
-const ADMIN_UID = "СЮДА_ВСТАВЬ_СВОЙ_UID_ИЗ_FIREBASE_AUTH"; // Появится после первого входа
+const ADMIN_UID = "ciDwSBtZ7OMo8Cxd1jfcSZQVpa63"; // Появится после первого входа
 
 // Локальное состояние
 let currentUser = null;
