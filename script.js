@@ -1,10 +1,8 @@
-// === 1. ИМПОРТЫ МОДУЛЕЙ (Firebase и Supabase) ===
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-// Конфигурация Firebase (Вставь свои данные из консоли Firebase)
 const firebaseConfig = {
     apiKey: "AIzaSyCqYzKEVWops5qTt1Iw_qvm6b42VhuFgaA",
     authDomain: "inmlandingshop.firebaseapp.com",
@@ -14,28 +12,24 @@ const firebaseConfig = {
     appId: "1:56300741868:web:e5a90e942a81d7424031c9"
 };
 
-// Инициализация Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// Инициализация Supabase (Данные уже подставлены)
 const SUPABASE_URL = "https://rvpfmnrvcbtbxonczcv.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Xbtp8BJos4Vmh22pcVuUMg_HQGuFS1s";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Конфигурация Telegram и Админки
 const TG_BOT_TOKEN = '8810566355:AAGya-exuy_8cDHY8YzDiZLH0refamQcwTQ';
 const TG_CHAT_ID = '-5289386929'; 
-const ADMIN_UID = "ciDwSBtZ7OMo8Cxd1jfcSZQVpa63"; // Появится после первого входа
+const ADMIN_UID = "ciDwSBtZ7OMo8Cxd1jfcSZQVpa63"; 
 
-// Локальное состояние
 let currentUser = null;
 let wishesList = [];
 let checkoutItems = [];
+let editingProductId = null; 
 
-// Селекторы элементов
 const modalBackdrop = document.getElementById('modal-backdrop');
 const modalWishes = document.getElementById('modal-wishes');
 const modalCart = document.getElementById('modal-cart');
@@ -47,10 +41,10 @@ const userNameEl = document.getElementById('user-name');
 const userAvatarImg = document.querySelector('.user-avatar img');
 const productsContainer = document.querySelector('.list');
 
-// === 2. АВТОРИЗАЦИЯ (GOOGLE AUTH) ===
+// АВТОРИЗАЦИЯ
 document.querySelector('.user-row').addEventListener('click', () => {
     if (!currentUser) {
-        signInWithPopup(auth, provider).catch(err => console.error("Ошибка входа:", err));
+        signInWithPopup(auth, provider).catch(err => console.error(err));
     } else {
         if (confirm("Вийти з акаунту?")) signOut(auth);
     }
@@ -61,7 +55,6 @@ onAuthStateChanged(auth, (user) => {
     if (user) {
         if (userNameEl) userNameEl.textContent = user.displayName || user.email;
         if (userAvatarImg) userAvatarImg.src = user.photoURL || "./media/profile.svg";
-        console.log("Твой UID для админки:", user.uid); // Скопируй его отсюда в переменную ADMIN_UID
     } else {
         if (userNameEl) userNameEl.textContent = "Увійти";
         if (userAvatarImg) userAvatarImg.src = "./media/profile.svg";
@@ -71,11 +64,9 @@ onAuthStateChanged(auth, (user) => {
 document.addEventListener('keydown', (event) => {
     if (event.shiftKey && event.code === 'KeyA') {
         event.preventDefault();
-        
-        // ДОБАВЬ ЭТУ СТРОКУ ДЛЯ ПРОВЕРКИ:
-        console.log("Мой UID в браузере:", currentUser?.uid, "UID админа в коде:", ADMIN_UID);
-
         if (currentUser && currentUser.uid === ADMIN_UID) {
+            editingProductId = null; 
+            document.getElementById('add-btn-create').textContent = "Створити";
             addItemBackdrop.classList.add('active');
         } else {
             alert("Доступ обмежено. Необхідні права адміністратора.");
@@ -83,7 +74,38 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
-// === 3. СИНХРОНИЗАЦИЯ ТОВАРОВ И КАРУСЕЛЬ ===
+// ОТКРЫТИЕ КОРЗИНЫ И ЖЕЛАЕМОГО
+document.getElementById('main-wishes-btn').addEventListener('click', () => modalWishes.classList.add('active'));
+document.getElementById('main-cart-btn').addEventListener('click', () => modalCart.classList.add('active'));
+document.getElementById('modal-wishes-close-btn').addEventListener('click', () => modalWishes.classList.remove('active'));
+document.getElementById('modal-cart-close-btn').addEventListener('click', () => modalCart.classList.remove('active'));
+
+// ОБНОВЛЕНИЕ UI СПИСКОВ
+function updateListsUI() {
+    const wishesContainer = document.querySelector('#modal-wishes .list');
+    const cartContainer = document.querySelector('#modal-cart .list');
+    const checkoutContainer = document.getElementById('checkout-items-container');
+    const totalSumEl = document.getElementById('checkout-total-sum');
+
+    const renderItem = (item) => `
+        <div class="checkout-item" style="display:flex; align-items:center; gap:10px; background:#a3a3a3; padding:10px; border-radius:10px; margin-bottom:10px; width: 100%; box-sizing: border-box;">
+            <img src="${item.images?.length ? item.images[0] : './media/no-photo.png'}" style="width:50px; height:50px; object-fit:cover; border-radius:5px;">
+            <div style="flex-grow:1; color:#000;">
+                <b>${item.name}</b><br>${item.price}₴
+            </div>
+        </div>`;
+
+    if (wishesContainer) wishesContainer.innerHTML = wishesList.map(renderItem).join('');
+    
+    const cartHTML = checkoutItems.map(renderItem).join('');
+    if (cartContainer) cartContainer.innerHTML = cartHTML;
+    if (checkoutContainer) checkoutContainer.innerHTML = cartHTML;
+    
+    if (totalSumEl) {
+        totalSumEl.textContent = checkoutItems.reduce((sum, item) => sum + item.price, 0);
+    }
+}
+
 function startImageCarousel(imgElement, imagesArray) {
     if (!imagesArray || imagesArray.length <= 1) return;
     let currentIndex = 0;
@@ -93,7 +115,7 @@ function startImageCarousel(imgElement, imagesArray) {
     }, 3000); 
 }
 
-// Получение данных из Firestore в реальном времени
+// СИНХРОНИЗАЦИЯ ТОВАРОВ
 onSnapshot(collection(db, "products"), (snapshot) => {
     productsContainer.innerHTML = '';
     snapshot.forEach((doc) => {
@@ -102,7 +124,7 @@ onSnapshot(collection(db, "products"), (snapshot) => {
         card.className = 'card';
         card.innerHTML = `
             <div class="card-img-wrapper">
-                <img class="product-card-img" src="${product.images?.length ? product.images[0] : './media/no-photo.png'}" alt="${product.name}">
+                <img class="product-card-img" src="${product.images?.length ? product.images[0] : './media/no-photo.png'}" alt="Товар">
             </div>
             <div class="card-info">
                 <div class="info-left">
@@ -125,15 +147,13 @@ onSnapshot(collection(db, "products"), (snapshot) => {
     });
 });
 
-// Модальное окно товара
+// МОДАЛКА ТОВАРА И ПРОВЕРКА АДМИНА
 function openProductModal(product) {
     document.getElementById('modal-name').textContent = `“${product.name}”`;
     document.getElementById('modal-price').textContent = `Ціна - ${product.price}₴`;
     document.getElementById('modal-status').textContent = product.qty > 0 ? 'В наявності' : 'Продано';
     document.getElementById('modal-description').textContent = product.desc;
-    
-    const modalImg = document.getElementById('modal-img');
-    modalImg.src = product.images?.length ? product.images[0] : './media/no-photo.png';
+    document.getElementById('modal-img').src = product.images?.length ? product.images[0] : './media/no-photo.png';
 
     const heartBtnImg = document.querySelector('#modal-heart img');
     const basketBtnImg = document.querySelector('#modal-basket img');
@@ -144,39 +164,73 @@ function openProductModal(product) {
     document.getElementById('modal-heart').onclick = (e) => {
         e.stopPropagation();
         const idx = wishesList.findIndex(item => item.id === product.id);
-        if (idx > -1) {
-            wishesList.splice(idx, 1);
-            heartBtnImg.src = './media/love_off.svg';
-        } else {
-            wishesList.push(product);
-            heartBtnImg.src = './media/love_on.svg';
-        }
+        if (idx > -1) wishesList.splice(idx, 1);
+        else wishesList.push(product);
+        heartBtnImg.src = wishesList.some(item => item.id === product.id) ? './media/love_on.svg' : './media/love_off.svg';
+        updateListsUI();
     };
 
     document.getElementById('modal-basket').onclick = (e) => {
         e.stopPropagation();
         const idx = checkoutItems.findIndex(item => item.id === product.id);
-        if (idx > -1) {
-            checkoutItems.splice(idx, 1);
-            basketBtnImg.src = './media/basket_off.svg';
-        } else {
-            checkoutItems.push(product);
-            basketBtnImg.src = './media/basket_on.svg';
-        }
+        if (idx > -1) checkoutItems.splice(idx, 1);
+        else checkoutItems.push(product);
+        basketBtnImg.src = checkoutItems.some(item => item.id === product.id) ? './media/basket_on.svg' : './media/basket_off.svg';
+        updateListsUI();
     };
 
-    const buyOlxBtn = document.getElementById('modal-buy-olx');
-    if (product.olxLink) {
-        buyOlxBtn.style.display = 'block';
-        buyOlxBtn.onclick = () => window.open(product.olxLink, '_blank');
+    const textButtonsContainer = document.querySelector('.text-buttons');
+    
+    // АДМИН-ПАНЕЛЬ ВНУТРИ КАРТОЧКИ
+    if (currentUser && currentUser.uid === ADMIN_UID) {
+        textButtonsContainer.innerHTML = `
+            <button id="modal-edit-btn" style="background-color: #f59e0b; color: #000;">Редагувати</button>
+            <button id="modal-delete-btn" style="background-color: #ef4444; color: #fff;">Видалити</button>
+        `;
+        
+        document.getElementById('modal-delete-btn').onclick = async () => {
+            if (confirm("Точно видалити цей товар?")) {
+                await deleteDoc(doc(db, "products", product.id));
+                modalBackdrop.classList.remove('active');
+                
+                // Удаляем из локальных списков, если он там был
+                wishesList = wishesList.filter(i => i.id !== product.id);
+                checkoutItems = checkoutItems.filter(i => i.id !== product.id);
+                updateListsUI();
+            }
+        };
+
+        document.getElementById('modal-edit-btn').onclick = () => {
+            editingProductId = product.id;
+            document.getElementById('add-name').value = product.name;
+            document.getElementById('add-desc').value = product.desc;
+            document.getElementById('add-price').value = product.price;
+            document.getElementById('add-qty').value = product.qty;
+            document.getElementById('add-link').value = product.olxLink || "";
+            document.getElementById('add-btn-create').textContent = "Зберегти";
+            
+            modalBackdrop.classList.remove('active');
+            addItemBackdrop.classList.add('active');
+        };
     } else {
-        buyOlxBtn.style.display = 'none';
+        // ОБЫЧНЫЙ ПОЛЬЗОВАТЕЛЬ
+        textButtonsContainer.innerHTML = `
+            <button id="modal-buy-1click">Замовити в 1 клік</button>
+            <button id="modal-buy-olx">Замовити через OLX</button>
+        `;
+        const buyOlxBtn = document.getElementById('modal-buy-olx');
+        if (product.olxLink) {
+            buyOlxBtn.style.display = 'block';
+            buyOlxBtn.onclick = () => window.open(product.olxLink, '_blank');
+        } else {
+            buyOlxBtn.style.display = 'none';
+        }
     }
 
     modalBackdrop.classList.add('active');
 }
 
-// === 4. ЗАГРУЗКА ФОТО В SUPABASE И СОХРАНЕНИЕ В FIREBASE ===
+// ДОБАВЛЕНИЕ / РЕДАКТИРОВАНИЕ ТОВАРА
 const photoInput = document.getElementById('photo-input');
 let uploadedFiles = [];
 
@@ -202,49 +256,50 @@ document.getElementById('add-item-form').addEventListener('submit', async (e) =>
     e.preventDefault();
     if (!currentUser || currentUser.uid !== ADMIN_UID) return;
 
-    const createBtn = document.querySelector('.btn-add-create');
+    const createBtn = document.getElementById('add-btn-create');
     createBtn.disabled = true;
     createBtn.textContent = "Завантаження...";
 
     try {
         const imageUrls = [];
-
-        // Цикл загрузки картинок в Supabase Storage
+        
         for (const file of uploadedFiles) {
             const fileExt = file.name.split('.').pop();
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-
-            const { data, error } = await supabase.storage
-                .from('product-images')
-                .upload(fileName, file);
-
+            const { data, error } = await supabase.storage.from('product-images').upload(fileName, file);
             if (error) throw error;
-
-            // Получаем публичную прямую ссылку на файл
-            const { data: publicUrlData } = supabase.storage
-                .from('product-images')
-                .getPublicUrl(fileName);
-
+            const { data: publicUrlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
             imageUrls.push(publicUrlData.publicUrl);
         }
 
-        // Сохранение всех полей и массива ссылок в Firestore
-        await addDoc(collection(db, "products"), {
+        const productData = {
             name: document.getElementById('add-name').value,
             desc: document.getElementById('add-desc').value,
             price: Number(document.getElementById('add-price').value),
             qty: Number(document.getElementById('add-qty').value),
-            olxLink: document.getElementById('add-link').value || "",
-            images: imageUrls
-        });
+            olxLink: document.getElementById('add-link').value || ""
+        };
+
+        // Если загружены новые фото — перезаписываем их. Если нет — оставляем старые.
+        if (imageUrls.length > 0) {
+            productData.images = imageUrls;
+        } else if (!editingProductId) {
+            productData.images = [];
+        }
+
+        if (editingProductId) {
+            await updateDoc(doc(db, "products", editingProductId), productData);
+        } else {
+            await addDoc(collection(db, "products"), productData);
+        }
 
         closeAddItemModal();
     } catch (err) {
-        console.error("Помилка при створенні товару:", err);
+        console.error("Помилка:", err);
         alert("Не вдалося зберегти товар.");
     } finally {
         createBtn.disabled = false;
-        createBtn.textContent = "Створити";
+        createBtn.textContent = editingProductId ? "Зберегти" : "Створити";
     }
 });
 
@@ -254,10 +309,11 @@ function closeAddItemModal() {
     uploadedFiles = [];
     document.querySelectorAll('.photo-preview').forEach(p => p.remove());
     document.getElementById('add-photo-btn').style.display = 'flex';
+    editingProductId = null;
 }
 document.getElementById('add-btn-cancel').addEventListener('click', closeAddItemModal);
 
-// === 5. ОФОРМЛЕНИЕ ЗАКАЗА В TELEGRAM ===
+// ОФОРМЛЕНИЕ ЗАКАЗА В TELEGRAM
 document.getElementById('checkout-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (checkoutItems.length === 0) return alert("Корзина порожня!");
@@ -276,28 +332,17 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
         totalSum += item.price;
     });
 
-    const message = `🚨 *Нове замовлення!*\n\n` +
-                    `👤 *Покупець:* ${pib}\n` +
-                    `📞 *Телефон:* ${phone}\n` +
-                    `📧 *Email:* ${email}\n` +
-                    `📍 *Місто:* ${city}\n` +
-                    `🚚 *Служба:* ${delivery}\n` +
-                    `🏢 *Відділення/Поштомат:* ${branch}\n\n` +
-                    `🛒 *Товари:*\n${itemsText}\n` +
-                    `💰 *Всього до сплати:* ${totalSum}₴`;
+    const message = `🚨 *Нове замовлення!*\n\n👤 *Покупець:* ${pib}\n📞 *Телефон:* ${phone}\n📧 *Email:* ${email}\n📍 *Місто:* ${city}\n🚚 *Служба:* ${delivery}\n🏢 *Відділення/Поштомат:* ${branch}\n\n🛒 *Товари:*\n${itemsText}\n💰 *Всього до сплати:* ${totalSum}₴`;
 
     try {
-        await fetch(`https://api.telegram.org/bot8810566355:AAGya-exuy_8cDHY8YzDiZLH0refamQcwTQ/sendMessage`, {
+        await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: -5289386929,
-                text: message,
-                parse_mode: 'Markdown'
-            })
+            body: JSON.stringify({ chat_id: TG_CHAT_ID, text: message, parse_mode: 'Markdown' })
         });
         alert('Замовлення успішно надіслано!');
         checkoutItems = [];
+        updateListsUI();
         checkoutBackdrop.classList.remove('active');
     } catch (err) {
         console.error("Помилка відправки в ТГ:", err);
@@ -305,7 +350,7 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
     }
 });
 
-// === ТЕМЫ И МОДАЛКИ (ОСТАВЛЕНО БЕЗ ИЗМЕНЕНИЙ) ===
+// ТЕМЫ И НАСТРОЙКИ
 const lightThemeBtn = document.querySelector('.light-btn');
 const darkThemeBtn = document.querySelector('.dark-btn');
 function applyTheme(theme) {
