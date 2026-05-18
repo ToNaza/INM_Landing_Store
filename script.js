@@ -256,9 +256,9 @@ document.getElementById('add-item-form').addEventListener('submit', async (e) =>
     e.preventDefault();
     if (!currentUser || currentUser.uid !== ADMIN_UID) return;
 
-    // Исправленный селектор по ID вместо класса
+    // Шукаємо строго по ID, бо класу .btn-add-create у тебе в HTML немає
     const createBtn = document.getElementById('add-btn-create');
-    if (!createBtn) return console.error("Кнопка #add-btn-create не найдена в HTML");
+    if (!createBtn) return console.error("Кнопка #add-btn-create не знайдена в HTML");
 
     createBtn.disabled = true;
     createBtn.textContent = "Завантаження...";
@@ -293,7 +293,6 @@ document.getElementById('add-item-form').addEventListener('submit', async (e) =>
             olxLink: document.getElementById('add-link').value || ""
         };
 
-        // Если редактируем — обновляем, если нет — создаем новый
         if (typeof editingProductId !== 'undefined' && editingProductId) {
             if (imageUrls.length > 0) productData.images = imageUrls;
             await updateDoc(doc(db, "products", editingProductId), productData);
@@ -305,7 +304,8 @@ document.getElementById('add-item-form').addEventListener('submit', async (e) =>
         closeAddItemModal();
     } catch (err) {
         console.error("Помилка при збереженні товару:", err);
-        alert("Не вдалося зберегти товар. Перевірте консоль.");
+        // Цей алерт покаже реальну причину відмови Firestore або Supabase
+        alert(`Не вдалося зберегти: ${err.message || err.code || err}`);
     } finally {
         createBtn.disabled = false;
         createBtn.textContent = (typeof editingProductId !== 'undefined' && editingProductId) ? "Зберегти" : "Створити";
