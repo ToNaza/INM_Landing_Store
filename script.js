@@ -17,7 +17,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-const SUPABASE_URL = "https://rvpfmnrvcbtbxonczcv.supabase.co";
+const SUPABASE_URL = "https://rvpfmnrvcbtcbxonczcv.supabase.co/rest/v1/";
 const SUPABASE_KEY = "sb_publishable_Xbtp8BJos4Vmh22pcVuUMg_HQGuFS1s";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -394,3 +394,5 @@ document.getElementById('buy').addEventListener('click', () => {
     if(checkoutItems.length > 0) checkoutBackdrop.classList.add('active');
 });
 document.getElementById('checkout-btn-back').addEventListener('click', () => checkoutBackdrop.classList.remove('active'));
+
+
