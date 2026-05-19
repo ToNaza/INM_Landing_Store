@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 const firebaseConfig = {
@@ -31,6 +31,11 @@ let wishesList = [];
 let checkoutItems = [];
 let editingProductId = null; 
 
+// Хранилища для синхронизации ID из аккаунта
+let allProducts = [];
+let savedWishesIds = [];
+let savedCartIds = [];
+
 // Стан для замовлення в 1 клік
 let isOneClickCheckout = false;
 let oneClickItem = null;
@@ -46,7 +51,7 @@ const userNameEl = document.getElementById('user-name');
 const userAvatarImg = document.querySelector('.user-avatar img');
 const productsContainer = document.querySelector('.list');
 
-// ЗАВАНТАЖЕННЯ ЗБЕРЕЖЕНИХ ДАНИХ КОРИСТУВАЧА
+// ЗАВАНТАЖЕННЯ ЗБЕРЕЖЕНИХ ДАНИХ КОРИСТУВАЧА (Форма)
 function loadSavedUserData() {
     if (localStorage.getItem('checkout_name')) document.getElementById('checkout-name').value = localStorage.getItem('checkout_name');
     if (localStorage.getItem('checkout_phone')) document.getElementById('checkout-phone').value = localStorage.getItem('checkout_phone');
@@ -55,6 +60,33 @@ function loadSavedUserData() {
     if (localStorage.getItem('checkout_branch')) document.getElementById('checkout-branch').value = localStorage.getItem('checkout_branch');
 }
 loadSavedUserData();
+
+// СИНХРОНІЗАЦІЯ ДАНИХ З ОБЕКТАМИ БАЗИ ДАНИХ
+function syncListsWithAllProducts() {
+    if (currentUser) {
+        wishesList = allProducts.filter(p => savedWishesIds.includes(p.id));
+        checkoutItems = allProducts.filter(p => savedCartIds.includes(p.id));
+    } else {
+        wishesList = wishesList.map(item => allProducts.find(p => p.id === item.id) || item);
+        checkoutItems = checkoutItems.map(item => allProducts.find(p => p.id === item.id) || item);
+    }
+    updateListsUI();
+}
+
+// ЗБЕРЕЖЕННЯ СПИСКІВ В FIRESTORE
+async function saveUserDataToFirebase() {
+    if (!currentUser) return;
+    try {
+        savedWishesIds = wishesList.map(item => item.id);
+        savedCartIds = checkoutItems.map(item => item.id);
+        await setDoc(doc(db, "users", currentUser.uid), {
+            wishes: savedWishesIds,
+            cart: savedCartIds
+        }, { merge: true });
+    } catch (e) {
+        console.error("Помилка збереження даних користувача:", e);
+    }
+}
 
 // АВТОРИЗАЦІЯ
 document.querySelector('.user-row').addEventListener('click', () => {
@@ -65,14 +97,35 @@ document.querySelector('.user-row').addEventListener('click', () => {
     }
 });
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     if (user) {
         if (userNameEl) userNameEl.textContent = user.displayName || user.email;
         if (userAvatarImg) userAvatarImg.src = user.photoURL || "./media/profile.svg";
+        
+        // Завантаження списків з аккаунту
+        try {
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists()) {
+                const data = userDoc.data();
+                savedWishesIds = data.wishes || [];
+                savedCartIds = data.cart || [];
+            } else {
+                savedWishesIds = [];
+                savedCartIds = [];
+            }
+            syncListsWithAllProducts();
+        } catch (e) {
+            console.error("Помилка завантаження даних користувача:", e);
+        }
     } else {
         if (userNameEl) userNameEl.textContent = "Увійти";
         if (userAvatarImg) userAvatarImg.src = "./media/profile.svg";
+        savedWishesIds = [];
+        savedCartIds = [];
+        wishesList = [];
+        checkoutItems = [];
+        updateListsUI();
     }
 });
 
@@ -89,11 +142,12 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
-// КЕРУВАННЯ ВІКНАМИ (Взаємовиключення)
+// КЕРУВАННЯ ВІКНАМИ (Закриває абсолютно все перед відкриттям нового)
 function closeAllModals() {
-    modalWishes.classList.remove('active');
-    modalCart.classList.remove('active');
-    modalSettings.classList.remove('active');
+    const modals = [modalWishes, modalCart, modalSettings, modalBackdrop, checkoutBackdrop, addItemBackdrop];
+    modals.forEach(modal => {
+        if (modal) modal.classList.remove('active');
+    });
 }
 
 document.getElementById('main-wishes-btn').addEventListener('click', (e) => {
@@ -127,7 +181,7 @@ window.addEventListener('click', (e) => {
 document.getElementById('modal-wishes-close-btn').addEventListener('click', () => modalWishes.classList.remove('active'));
 document.getElementById('modal-cart-close-btn').addEventListener('click', () => modalCart.classList.remove('active'));
 
-// ФУНКЦІЯ СТВОРЕННЯ КАРТКИ ТОВАРУ (Універсальна для головної, бажаного і кошика)
+// ФУНКЦІЯ СТВОРЕННЯ КАРТКИ ТОВАРУ
 function createCardElement(product) {
     const card = document.createElement('div');
     card.className = 'card';
@@ -152,7 +206,7 @@ function createCardElement(product) {
     if (product.images?.length > 1) startImageCarousel(cardImg, product.images);
 
     card.addEventListener('click', () => {
-        closeAllModals(); // Закриваємо списки перед відкриттям товару
+        closeAllModals(); 
         openProductModal(product);
     });
 
@@ -212,15 +266,18 @@ function startImageCarousel(imgElement, imagesArray) {
 
 // СИНХРОНІЗАЦІЯ ТОВАРІВ
 onSnapshot(collection(db, "products"), (snapshot) => {
+    allProducts = [];
     productsContainer.innerHTML = '';
     snapshot.forEach((doc) => {
         const product = { id: doc.id, ...doc.data() };
+        allProducts.push(product);
         const card = createCardElement(product);
         productsContainer.appendChild(card);
     });
+    syncListsWithAllProducts();
 });
 
-// МОДАЛКА ТОВАРА И ПРОВЕРКА АДМИНА
+// МОДАЛКА ТОВАРА
 function openProductModal(product) {
     document.getElementById('modal-name').textContent = `“${product.name}”`;
     document.getElementById('modal-price').textContent = `Ціна - ${product.price}₴`;
@@ -234,27 +291,28 @@ function openProductModal(product) {
     heartBtnImg.src = wishesList.some(item => item.id === product.id) ? './media/love_on.svg' : './media/love_off.svg';
     basketBtnImg.src = checkoutItems.some(item => item.id === product.id) ? './media/basket_on.svg' : './media/basket_off.svg';
 
-    document.getElementById('modal-heart').onclick = (e) => {
+    document.getElementById('modal-heart').onclick = async (e) => {
         e.stopPropagation();
         const idx = wishesList.findIndex(item => item.id === product.id);
         if (idx > -1) wishesList.splice(idx, 1);
         else wishesList.push(product);
         heartBtnImg.src = wishesList.some(item => item.id === product.id) ? './media/love_on.svg' : './media/love_off.svg';
+        await saveUserDataToFirebase();
         updateListsUI();
     };
 
-    document.getElementById('modal-basket').onclick = (e) => {
+    document.getElementById('modal-basket').onclick = async (e) => {
         e.stopPropagation();
         const idx = checkoutItems.findIndex(item => item.id === product.id);
         if (idx > -1) checkoutItems.splice(idx, 1);
         else checkoutItems.push(product);
         basketBtnImg.src = checkoutItems.some(item => item.id === product.id) ? './media/basket_on.svg' : './media/basket_off.svg';
+        await saveUserDataToFirebase();
         updateListsUI();
     };
 
     const textButtonsContainer = document.querySelector('.text-buttons');
     
-    // АДМИН-ПАНЕЛЬ ВНУТРИ КАРТОЧКИ
     if (currentUser && currentUser.uid === ADMIN_UID) {
         textButtonsContainer.innerHTML = `
             <button id="modal-edit-btn" style="background-color: #f59e0b; color: #000;">Редагувати</button>
@@ -268,6 +326,7 @@ function openProductModal(product) {
                 
                 wishesList = wishesList.filter(i => i.id !== product.id);
                 checkoutItems = checkoutItems.filter(i => i.id !== product.id);
+                await saveUserDataToFirebase();
                 updateListsUI();
             }
         };
@@ -285,7 +344,6 @@ function openProductModal(product) {
             addItemBackdrop.classList.add('active');
         };
     } else {
-        // ОБЫЧНЫЙ ПОЛЬЗОВАТЕЛЬ
         textButtonsContainer.innerHTML = `
             <button id="modal-buy-1click">Замовити в 1 клік</button>
             <button id="modal-buy-olx">Замовити через OLX</button>
@@ -406,7 +464,6 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
     e.preventDefault();
     
     let itemsToProcess = isOneClickCheckout ? [oneClickItem] : checkoutItems;
-    
     if (itemsToProcess.length === 0) return alert("Корзина порожня!");
 
     const pib = document.getElementById('checkout-name').value;
@@ -442,16 +499,16 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
             localStorage.setItem('checkout_branch', branch);
         }
 
-        // Очищення даних
         if (!isOneClickCheckout) {
-            checkoutItems = []; // Очищуємо корзину тільки якщо це не замовлення в 1 клік
+            checkoutItems = []; 
+            await saveUserDataToFirebase();
         }
         
         isOneClickCheckout = false;
         oneClickItem = null;
         
         document.getElementById('checkout-form').reset();
-        loadSavedUserData(); // Відновлюємо дані, якщо користувач погодився їх зберегти
+        loadSavedUserData(); 
 
         updateListsUI();
         checkoutBackdrop.classList.remove('active');
@@ -481,13 +538,12 @@ applyTheme(localStorage.getItem('app_theme') || 'dark');
 lightThemeBtn.addEventListener('click', () => applyTheme('light'));
 darkThemeBtn.addEventListener('click', () => applyTheme('dark'));
 
-// Кнопка переходу до оформлення з корзини
 document.getElementById('buy').addEventListener('click', () => {
     if(checkoutItems.length > 0) {
         isOneClickCheckout = false;
         oneClickItem = null;
         updateCheckoutUI();
-        modalCart.classList.remove('active'); // Закриваємо корзину для чистоти інтерфейсу
+        modalCart.classList.remove('active'); 
         checkoutBackdrop.classList.add('active');
     }
 });
