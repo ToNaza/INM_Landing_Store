@@ -363,6 +363,15 @@ background: linear-gradient(146deg, rgba(230, 230, 230, 1) 0%, rgba(179, 179, 17
     margin-top: -3px;
 }
 
+#modal-wishes .list, 
+#modal-cart .list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    padding: 10px;
+}
+
 /* ↑↑↑ Бажане та Кошик ↑↑↑ */
 
 
