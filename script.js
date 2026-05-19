@@ -272,14 +272,14 @@ document.getElementById('add-item-form').addEventListener('submit', async (e) =>
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
 
             const { data, error } = await supabase.storage
-                .from('product-images')
+                .from('product_images')
                 .upload(fileName, file);
 
             if (error) throw error;
 
             // Получаем публичную прямую ссылку на файл
             const { data: publicUrlData } = supabase.storage
-                .from('product-images')
+                .from('product_images')
                 .getPublicUrl(fileName);
 
             imageUrls.push(publicUrlData.publicUrl);
