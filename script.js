@@ -150,13 +150,13 @@ function closeAllModals() {
     });
 }
 
-// Переключение окна Желаемого
 document.getElementById('main-wishes-btn').addEventListener('click', (e) => {
     e.stopPropagation();
+    // Проверяем: если оно уже открыто — закрываем, если закрыто — закрываем остальные два и открываем это
     if (modalWishes.classList.contains('active')) {
         modalWishes.classList.remove('active');
     } else {
-        closeAllModals(); // Закрываем всё открытое перед переключением
+        closeMainModals();
         modalWishes.classList.add('active');
     }
 });
@@ -167,7 +167,7 @@ document.getElementById('main-cart-btn').addEventListener('click', (e) => {
     if (modalCart.classList.contains('active')) {
         modalCart.classList.remove('active');
     } else {
-        closeAllModals(); // Закрываем всё открытое перед переключением
+        closeMainModals();
         modalCart.classList.add('active');
     }
 });
@@ -178,7 +178,7 @@ document.getElementById('main-settings-btn').addEventListener('click', (e) => {
     if (modalSettings.classList.contains('active')) {
         modalSettings.classList.remove('active');
     } else {
-        closeAllModals(); // Закрываем всё открытое перед переключением
+        closeMainModals();
         modalSettings.classList.add('active');
     }
 });
@@ -189,8 +189,6 @@ window.addEventListener('click', (e) => {
     if (e.target === modalWishes) modalWishes.classList.remove('active');
     if (e.target === modalCart) modalCart.classList.remove('active');
     if (e.target === modalBackdrop) modalBackdrop.classList.remove('active');
-    if (e.target === checkoutBackdrop) checkoutBackdrop.classList.remove('active');
-    if (e.target === addItemBackdrop) addItemBackdrop.classList.remove('active');
 });
 
 document.getElementById('modal-wishes-close-btn').addEventListener('click', () => modalWishes.classList.remove('active'));
