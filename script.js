@@ -17,8 +17,9 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-const SUPABASE_URL = "https://rvpfmnrvcbtcbxonczcv.supabase.co/rest/v1/";
-const SUPABASE_KEY = "sb_publishable_Xbtp8BJos4Vmh22pcVuUMg_HQGuFS1s";
+const SUPABASE_URL = "https://yvujvjebfpllkyjswxra.supabase.co"; // Твой API URL со скрина
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1..."; // Твой anon public со скрина
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const TG_BOT_TOKEN = '8810566355:AAGya-exuy_8cDHY8YzDiZLH0refamQcwTQ';
