@@ -837,7 +837,7 @@ body.light-mode .settings-row {
 
 /* Базовые стили для статусов (для темной темы) */
 .status-available {
-    color: #009700; /* Ярко-зеленый */
+    color: #00ff00; /* Ярко-зеленый */
 }
 
 .status-sold {
