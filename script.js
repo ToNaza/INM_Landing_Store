@@ -30,6 +30,7 @@ let currentUser = null;
 let wishesList = [];
 let checkoutItems = [];
 let editingProductId = null; 
+let modalCarouselInterval = null;
 
 // Хранилища для синхронизации ID из аккаунта
 let allProducts = [];
@@ -211,18 +212,19 @@ document.querySelectorAll('#main-settings-btn').forEach(btn => {
     });
 });
 
-// Закрытие по клику на фон
 window.addEventListener('click', (e) => {
     if (e.target === modalSettings) closeSettings();
     if (e.target === modalWishes) closeWishes();
     if (e.target === modalCart) closeCart();
-    if (e.target === modalBackdrop) modalBackdrop.classList.remove('active');
+    if (e.target === modalBackdrop) {
+        modalBackdrop.classList.remove('active');
+        if (modalCarouselInterval) clearInterval(modalCarouselInterval);
+    }
 });
 
 document.getElementById('modal-wishes-close-btn').addEventListener('click', () => modalWishes.classList.remove('active'));
 document.getElementById('modal-cart-close-btn').addEventListener('click', () => modalCart.classList.remove('active'));
 
-// ФУНКЦІЯ СТВОРЕННЯ КАРТКИ ТОВАРУ
 function createCardElement(product) {
     const card = document.createElement('div');
     card.className = 'card';
@@ -243,11 +245,10 @@ function createCardElement(product) {
         </div>
     `;
 
-    const cardImg = card.querySelector('.product-card-img');
-    if (product.images?.length > 1) startImageCarousel(cardImg, product.images);
-
     card.addEventListener('click', () => {
-        closeAllModals(); 
+        closeWishes();
+        closeCart();
+        closeSettings();
         openProductModal(product);
     });
 
@@ -302,7 +303,7 @@ function startImageCarousel(imgElement, imagesArray) {
     setInterval(() => {
         currentIndex = (currentIndex + 1) % imagesArray.length;
         imgElement.src = imagesArray[currentIndex];
-    }, 3000); 
+    }, 6000); 
 }
 
 // СИНХРОНІЗАЦІЯ ТОВАРІВ
@@ -318,13 +319,64 @@ onSnapshot(collection(db, "products"), (snapshot) => {
     syncListsWithAllProducts();
 });
 
-// МОДАЛКА ТОВАРА
 function openProductModal(product) {
+    if (modalCarouselInterval) clearInterval(modalCarouselInterval);
+
     document.getElementById('modal-name').textContent = `“${product.name}”`;
     document.getElementById('modal-price').textContent = `Ціна - ${product.price}₴`;
     document.getElementById('modal-status').textContent = product.qty > 0 ? `В наявності ${product.qty}шт.` : 'Продано';
     document.getElementById('modal-description').textContent = product.desc;
-    document.getElementById('modal-img').src = product.images?.length ? product.images[0] : './media/no-photo.png';
+    
+    const modalImg = document.getElementById('modal-img');
+    modalImg.src = product.images?.length ? product.images[0] : './media/no-photo.png';
+
+    // Запускаем автоматическую смену фото (раз в 6 секунд) ТОЛЬКО внутри модалки товара
+    if (product.images?.length > 1) {
+        let currentIndex = 0;
+        modalCarouselInterval = setInterval(() => {
+            currentIndex = (currentIndex + 1) % product.images.length;
+            modalImg.src = product.images[currentIndex];
+        }, 6000);
+    }
+
+    // Встроенная галерея (приближение и пролистывание на этой же странице)
+    modalImg.style.cursor = 'zoom-in';
+    modalImg.onclick = () => {
+        if (!product.images || product.images.length === 0) return;
+
+        // Определяем, какая картинка горела в карусели на момент клика
+        let currentImgIdx = product.images.indexOf(modalImg.src);
+        if (currentImgIdx === -1) currentImgIdx = 0;
+
+        const lightbox = document.createElement('div');
+        lightbox.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:20000; display:flex; align-items:center; justify-content:center; user-select:none;';
+
+        lightbox.innerHTML = `
+            <span id="lb-close" style="position:absolute; top:20px; right:30px; color:#fff; font-size:40px; cursor:pointer; font-weight:bold;">&times;</span>
+            ${product.images.length > 1 ? '<span id="lb-prev" style="position:absolute; left:30px; color:#fff; font-size:50px; cursor:pointer; font-family:monospace; padding:10px;">&lt;</span>' : ''}
+            <img id="lb-img" src="${product.images[currentImgIdx]}" style="max-width:90%; max-height:90%; object-fit:contain; border-radius:10px;">
+            ${product.images.length > 1 ? '<span id="lb-next" style="position:absolute; right:30px; color:#fff; font-size:50px; cursor:pointer; font-family:monospace; padding:10px;">&gt;</span>' : ''}
+        `;
+
+        document.body.appendChild(lightbox);
+
+        const lbImg = document.getElementById('lb-img');
+        if (product.images.length > 1) {
+            document.getElementById('lb-prev').onclick = (e) => {
+                e.stopPropagation();
+                currentImgIdx = (currentImgIdx - 1 + product.images.length) % product.images.length;
+                lbImg.src = product.images[currentImgIdx];
+            };
+            document.getElementById('lb-next').onclick = (e) => {
+                e.stopPropagation();
+                currentImgIdx = (currentImgIdx + 1) % product.images.length;
+                lbImg.src = product.images[currentImgIdx];
+            };
+        }
+
+        document.getElementById('lb-close').onclick = () => lightbox.remove();
+        lightbox.onclick = (e) => { if (e.target === lightbox) lightbox.remove(); };
+    };
 
     const heartBtnImg = document.querySelector('#modal-heart img');
     const basketBtnImg = document.querySelector('#modal-basket img');
@@ -362,6 +414,7 @@ function openProductModal(product) {
         
         document.getElementById('modal-delete-btn').onclick = async () => {
             if (confirm("Точно видалити цей товар?")) {
+                if (modalCarouselInterval) clearInterval(modalCarouselInterval);
                 await deleteDoc(doc(db, "products", product.id));
                 modalBackdrop.classList.remove('active');
                 
@@ -373,6 +426,7 @@ function openProductModal(product) {
         };
 
         document.getElementById('modal-edit-btn').onclick = () => {
+            if (modalCarouselInterval) clearInterval(modalCarouselInterval);
             editingProductId = product.id;
             document.getElementById('add-name').value = product.name;
             document.getElementById('add-desc').value = product.desc;
@@ -400,6 +454,7 @@ function openProductModal(product) {
         const buy1ClickBtn = document.getElementById('modal-buy-1click');
         if (buy1ClickBtn) {
             buy1ClickBtn.onclick = () => {
+                if (modalCarouselInterval) clearInterval(modalCarouselInterval);
                 isOneClickCheckout = true;
                 oneClickItem = product;
                 updateCheckoutUI();
@@ -594,3 +649,4 @@ document.getElementById('checkout-btn-back').addEventListener('click', () => {
     isOneClickCheckout = false;
     oneClickItem = null;
 });
+
