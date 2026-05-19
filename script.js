@@ -18,7 +18,7 @@ const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
 const SUPABASE_URL = "https://yvujvjebfpllkyjswxra.supabase.co"; 
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2dWp2amVicGZsbGt5anN3eHJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MjU4MDksImV4cCI6MjA2MzMwMTgwOX0.999-ТВОЙ_ПОЛНЫЙ_КЛЮЧ_ИЗ_АДМИНКИ"; 
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2dWp2amVicGZsbGt5anN3eHJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MjU4MDksImV4cCI6MjA2MzMwMTgwOX0.999-sb_publishable_Xbtp8BJos4Vmh22pcVuUMg_HQGuFS1s"; 
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
