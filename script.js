@@ -150,22 +150,37 @@ function closeAllModals() {
     });
 }
 
+// Переключение окна Желаемого
 document.getElementById('main-wishes-btn').addEventListener('click', (e) => {
     e.stopPropagation();
-    closeAllModals();
-    modalWishes.classList.add('active');
+    if (modalWishes.classList.contains('active')) {
+        modalWishes.classList.remove('active');
+    } else {
+        closeAllModals(); // Закрываем всё открытое перед переключением
+        modalWishes.classList.add('active');
+    }
 });
 
+// Переключение окна Корзины
 document.getElementById('main-cart-btn').addEventListener('click', (e) => {
     e.stopPropagation();
-    closeAllModals();
-    modalCart.classList.add('active');
+    if (modalCart.classList.contains('active')) {
+        modalCart.classList.remove('active');
+    } else {
+        closeAllModals(); // Закрываем всё открытое перед переключением
+        modalCart.classList.add('active');
+    }
 });
 
+// Переключение окна Настроек
 document.getElementById('main-settings-btn').addEventListener('click', (e) => {
     e.stopPropagation();
-    closeAllModals();
-    modalSettings.classList.add('active');
+    if (modalSettings.classList.contains('active')) {
+        modalSettings.classList.remove('active');
+    } else {
+        closeAllModals(); // Закрываем всё открытое перед переключением
+        modalSettings.classList.add('active');
+    }
 });
 
 // Закриття вікон при кліку поза їх межами
@@ -553,3 +568,5 @@ document.getElementById('checkout-btn-back').addEventListener('click', () => {
     isOneClickCheckout = false;
     oneClickItem = null;
 });
+
+

@@ -365,6 +365,33 @@ background: linear-gradient(146deg, rgba(230, 230, 230, 1) 0%, rgba(179, 179, 17
 
 
 
+.headers {
+    display: flex;
+    align-items: center;       /* Выравнивает логотип и кнопки по вертикали */
+    justify-content: space-between; /* Распределяет логотип влево, а кнопки вправо (если они в группе) */
+    width: 100%;
+    padding: 10px 15px;        /* Внутренние отступы, чтобы не прилипало к краям */
+    box-sizing: border-box;
+}
+
+/* Если кнопки идут сразу внутри .headers, сгруппируем их или зададим им фиксированный размер, чтобы они не деформировались */
+.headers button {
+    flex-shrink: 0;            /* Запрещает кнопкам сжиматься или деформироваться */
+    width: 50px;
+    height: 50px;
+    margin: 5px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.headers img {
+    flex-shrink: 0;            /* Запрещает логотипу менять свой размер */
+    width: 70px;
+    height: auto;
+}
+
 /* ↑↑↑ Бажане та Кошик ↑↑↑ */
 
 
