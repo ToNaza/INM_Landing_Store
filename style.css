@@ -342,7 +342,7 @@ background: linear-gradient(146deg, rgba(230, 230, 230, 1) 0%, rgba(179, 179, 17
     justify-content: flex-start; /* В левый верхний край */
     align-items: flex-start;
     padding: 20px 0 0 25px; /* Отступы от краев книги */
-    height: 5px;
+    max-height: 50px;
     
     .k{
         color: white;

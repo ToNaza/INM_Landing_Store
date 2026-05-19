@@ -142,52 +142,80 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
-// КЕРУВАННЯ ВІКНАМИ (Закриває абсолютно все перед відкриттям нового)
-function closeAllModals() {
-    const modals = [modalWishes, modalCart, modalSettings, modalBackdrop, checkoutBackdrop, addItemBackdrop];
-    modals.forEach(modal => {
-        if (modal) modal.classList.remove('active');
-    });
+// === ФУНКЦИИ ОТКРЫТИЯ / ЗАКРЫТИЯ ===
+function closeWishes() {
+    modalWishes.classList.remove('active');
+    if (document.querySelector('#main-wishes-btn img')) {
+        document.querySelector('#main-wishes-btn img').src = './media/love_off.svg';
+    }
 }
 
-document.getElementById('main-wishes-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    // Проверяем: если оно уже открыто — закрываем, если закрыто — закрываем остальные два и открываем это
-    if (modalWishes.classList.contains('active')) {
-        modalWishes.classList.remove('active');
-    } else {
-        closeMainModals();
-        modalWishes.classList.add('active');
+function closeCart() {
+    modalCart.classList.remove('active');
+    if (document.querySelector('#main-cart-btn img')) {
+        document.querySelector('#main-cart-btn img').src = './media/basket_off.svg';
     }
+}
+
+function closeSettings() {
+    modalSettings.classList.remove('active');
+}
+
+function openWishes() {
+    closeCart(); 
+    closeSettings(); 
+    modalWishes.classList.add('active');
+    if (document.querySelector('#main-wishes-btn img')) {
+        document.querySelector('#main-wishes-btn img').src = './media/love_on.svg';
+    }
+}
+
+function openCart() {
+    closeWishes();
+    closeSettings();
+    modalCart.classList.add('active');
+    if (document.querySelector('#main-cart-btn img')) {
+        document.querySelector('#main-cart-btn img').src = './media/basket_on.svg';
+    }
+}
+
+function openSettings() {
+    closeWishes();
+    closeCart();
+    modalSettings.classList.add('active');
+}
+
+// === НАВЕШИВАНИЕ СОБЫТИЙ НА КНОПКИ ===
+
+// Бажане
+document.querySelectorAll('#main-wishes-btn, #modal-cart-wishes-btn, #modal-wishes-close-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        modalWishes.classList.contains('active') ? closeWishes() : openWishes();
+    });
 });
 
-// Переключение окна Корзины
-document.getElementById('main-cart-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (modalCart.classList.contains('active')) {
-        modalCart.classList.remove('active');
-    } else {
-        closeMainModals();
-        modalCart.classList.add('active');
-    }
+// Кошик
+document.querySelectorAll('#main-cart-btn, #modal-wishes-cart-btn, #modal-cart-close-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        modalCart.classList.contains('active') ? closeCart() : openCart();
+    });
 });
 
-// Переключение окна Настроек
-document.getElementById('main-settings-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (modalSettings.classList.contains('active')) {
-        modalSettings.classList.remove('active');
-    } else {
-        closeMainModals();
-        modalSettings.classList.add('active');
-    }
+// Настройки (теперь работают по той же схеме и закрывают другие окна)
+document.querySelectorAll('#main-settings-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        modalSettings.classList.contains('active') ? closeSettings() : openSettings();
+    });
 });
 
-// Закриття вікон при кліку поза їх межами
+// Закрытие по клику на фон
 window.addEventListener('click', (e) => {
-    if (e.target === modalSettings) modalSettings.classList.remove('active');
-    if (e.target === modalWishes) modalWishes.classList.remove('active');
-    if (e.target === modalCart) modalCart.classList.remove('active');
+    if (e.target === modalSettings) closeSettings();
+    if (e.target === modalWishes) closeWishes();
+    if (e.target === modalCart) closeCart();
     if (e.target === modalBackdrop) modalBackdrop.classList.remove('active');
 });
 
@@ -566,5 +594,3 @@ document.getElementById('checkout-btn-back').addEventListener('click', () => {
     isOneClickCheckout = false;
     oneClickItem = null;
 });
-
-
