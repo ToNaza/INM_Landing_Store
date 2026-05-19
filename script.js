@@ -228,6 +228,12 @@ document.getElementById('modal-cart-close-btn').addEventListener('click', () => 
 function createCardElement(product) {
     const card = document.createElement('div');
     card.className = 'card';
+    
+    // Определяем класс и текст один раз
+    const isAvailable = product.qty > 0;
+    const statusClass = isAvailable ? 'status-available' : 'status-sold';
+    const statusText = isAvailable ? `В наявності ${product.qty}шт.` : 'Продано';
+
     card.innerHTML = `
         <div class="card-img-wrapper">
             <img class="product-card-img" src="${product.images?.length ? product.images[0] : './media/no-photo.png'}" alt="Товар">
@@ -235,8 +241,8 @@ function createCardElement(product) {
         <div class="card-info">
             <div class="info-left">
                 <span>“${product.name}”</span>
-                <span style="color: ${product.qty > 0 ? '#00FF00' : '#FF0000'}">
-                    ${product.qty > 0 ? `В наявності ${product.qty}шт.` : 'Продано'}
+                <span class="${statusClass}">
+                    ${statusText}
                 </span>
             </div>
             <div class="info-right">
