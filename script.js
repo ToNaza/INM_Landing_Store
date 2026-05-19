@@ -20,8 +20,10 @@ const provider = new GoogleAuthProvider();
 const SUPABASE_URL = "https://rvpfmnrvcbtcbxonczcv.supabase.co"; // Твой API URL со скрина
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2cGZtbnJ2Y2J0Y2J4b25jemN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwOTc4NTIsImV4cCI6MjA5NDY3Mzg1Mn0.BPD8k6VifoylRQO-afoRXfdDsM0rPE36LASckwNiCJ0"; // Твой anon public со скрина
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
+const supabase = createClient(
+  "https://rvpfmnrvcbtcbxonczcv.supabase.co", 
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2cGZtbnJ2Y2J0Y2J4b25jemN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwOTc4NTIsImV4cCI6MjA5NDY3Mzg1Mn0.BPD8k6VifoylRQO-afoRXfdDsM0rPE36LASckwNiCJ0"
+);
 const TG_BOT_TOKEN = '8810566355:AAGya-exuy_8cDHY8YzDiZLH0refamQcwTQ';
 const TG_CHAT_ID = '-5289386929'; 
 const ADMIN_UID = "ciDwSBtZ7OMo8Cxd1jfcSZQVpa63"; 
