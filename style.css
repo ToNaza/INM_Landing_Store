@@ -706,6 +706,153 @@ body.light-mode .settings-row {
 /* ↑↑↑ Оформлення покупки ↑↑↑ */
 
 
+
+/* --- Модальное окно Info --- */
+.info-modal-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 450px;
+    padding: 25px;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    box-sizing: border-box;
+    transition: background-color 0.2s, color 0.2s;
+    
+    /* Дефолтные темные стили */
+    background-color: #5a5a5a;
+    color: #ffffff;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Адаптация под светлую тему */
+body.light-mode .info-modal-wrapper {
+    background-color: #ffffff;
+    color: #000000;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+/* Кнопка закрытия */
+.info-modal-wrapper .close-btn {
+    position: absolute;
+    top: 12px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 26px;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+.info-modal-wrapper .close-btn:hover {
+    opacity: 1;
+}
+
+/* Верхний блок (Аватар + Ссылки) */
+.info-top-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+
+.info-links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.info-link-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    font-family: 'Jura', sans-serif;
+    font-weight: bold;
+    font-size: 15px;
+    color: #9da4ff;
+    transition: color 0.2s;
+}
+
+.info-link-item img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.info-link-item:hover {
+    color: #ffffff;
+}
+
+body.light-mode .info-link-item {
+    color: #bebebe;
+}
+body.light-mode .info-link-item:hover {
+    color: #000000;
+}
+
+/* Нижний блок (FAQ скролл) */
+.info-bottom-section {
+    display: flex;
+    flex-direction: column;
+}
+
+.faq-container {
+    max-height: 220px; /* Фиксированная высота для появления скролла */
+    overflow-y: auto;
+    padding-right: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.faq-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.205);
+}
+
+body.light-mode .faq-item {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.faq-question {
+    font-family: 'Jura', sans-serif;
+    
+    font-size: 20px;
+}
+
+.faq-answer {
+    font-family: 'Jura', sans-serif;
+    font-size: 18px;
+    opacity: 0.75;
+    line-height: 1.4;
+}
+
+/* Стилизация скроллбара */
+.faq-container::-webkit-scrollbar {
+    width: 4px;
+}
+.faq-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+.faq-container::-webkit-scrollbar-thumb {
+    background: #8c8c8c;
+    border-radius: 10px;
+}
+body.light-mode .faq-container::-webkit-scrollbar-thumb {
+    background: #b0b0b0;
+}
+
+
+
+
+
+
 /* ↑↑↑ Зона модальних вікон ↑↑↑ */
 
 

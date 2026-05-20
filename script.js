@@ -45,9 +45,11 @@ const modalBackdrop = document.getElementById('modal-backdrop');
 const modalWishes = document.getElementById('modal-wishes');
 const modalCart = document.getElementById('modal-cart');
 const modalSettings = document.getElementById('modal-settings');
+const modalInfo = document.getElementById('modal-info');
 const checkoutBackdrop = document.getElementById('checkout-backdrop');
 const addItemBackdrop = document.getElementById('add-item-backdrop');
 
+const infoBtn = document.getElementById('info');
 const userNameEl = document.getElementById('user-name');
 const userAvatarImg = document.querySelector('.user-avatar img');
 const productsContainer = document.querySelector('.list');
@@ -162,9 +164,14 @@ function closeSettings() {
     modalSettings.classList.remove('active');
 }
 
+function closeInfo() {
+    if (modalInfo) modalInfo.classList.remove('active');
+}
+
 function openWishes() {
     closeCart(); 
     closeSettings(); 
+    closeInfo();
     modalWishes.classList.add('active');
     if (document.querySelector('#main-wishes-btn img')) {
         document.querySelector('#main-wishes-btn img').src = './media/love_on.svg';
@@ -174,6 +181,7 @@ function openWishes() {
 function openCart() {
     closeWishes();
     closeSettings();
+    closeInfo();
     modalCart.classList.add('active');
     if (document.querySelector('#main-cart-btn img')) {
         document.querySelector('#main-cart-btn img').src = './media/basket_on.svg';
@@ -183,10 +191,20 @@ function openCart() {
 function openSettings() {
     closeWishes();
     closeCart();
+    closeInfo();
     modalSettings.classList.add('active');
 }
 
 // === НАВЕШИВАНИЕ СОБЫТИЙ НА КНОПКИ ===
+
+if (infoBtn) {
+    infoBtn.addEventListener('click', () => {
+        closeWishes();
+        closeCart();
+        closeSettings();
+        modalInfo.classList.add('active');
+    });
+}
 
 // Бажане
 document.querySelectorAll('#main-wishes-btn, #modal-cart-wishes-btn, #modal-wishes-close-btn').forEach(btn => {
@@ -204,7 +222,7 @@ document.querySelectorAll('#main-cart-btn, #modal-wishes-cart-btn, #modal-cart-c
     });
 });
 
-// Настройки (теперь работают по той же схеме и закрывают другие окна)
+// Настройки
 document.querySelectorAll('#main-settings-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -216,6 +234,7 @@ window.addEventListener('click', (e) => {
     if (e.target === modalSettings) closeSettings();
     if (e.target === modalWishes) closeWishes();
     if (e.target === modalCart) closeCart();
+    if (e.target === modalInfo) closeInfo();
     if (e.target === modalBackdrop) {
         modalBackdrop.classList.remove('active');
         if (modalCarouselInterval) clearInterval(modalCarouselInterval);
@@ -229,7 +248,6 @@ function createCardElement(product) {
     const card = document.createElement('div');
     card.className = 'card';
     
-    // Определяем класс и текст один раз
     const isAvailable = product.qty > 0;
     const statusClass = isAvailable ? 'status-available' : 'status-sold';
     const statusText = isAvailable ? `В наявності ${product.qty}шт.` : 'Продано';
@@ -255,6 +273,7 @@ function createCardElement(product) {
         closeWishes();
         closeCart();
         closeSettings();
+        closeInfo();
         openProductModal(product);
     });
 
@@ -336,7 +355,6 @@ function openProductModal(product) {
     const modalImg = document.getElementById('modal-img');
     modalImg.src = product.images?.length ? product.images[0] : './media/no-photo.png';
 
-    // Запускаем автоматическую смену фото (раз в 6 секунд) ТОЛЬКО внутри модалки товара
     if (product.images?.length > 1) {
         let currentIndex = 0;
         modalCarouselInterval = setInterval(() => {
@@ -345,12 +363,10 @@ function openProductModal(product) {
         }, 6000);
     }
 
-    // Встроенная галерея (приближение и пролистывание на этой же странице)
     modalImg.style.cursor = 'zoom-in';
     modalImg.onclick = () => {
         if (!product.images || product.images.length === 0) return;
 
-        // Определяем, какая картинка горела в карусели на момент клика
         let currentImgIdx = product.images.indexOf(modalImg.src);
         if (currentImgIdx === -1) currentImgIdx = 0;
 
@@ -460,6 +476,10 @@ function openProductModal(product) {
         const buy1ClickBtn = document.getElementById('modal-buy-1click');
         if (buy1ClickBtn) {
             buy1ClickBtn.onclick = () => {
+                if (!currentUser) {
+                    alert("Перш ніж оформляти замовлення ви маєте зареєструватись, «Налаштування - увійти»");
+                    return;
+                }
                 if (modalCarouselInterval) clearInterval(modalCarouselInterval);
                 isOneClickCheckout = true;
                 oneClickItem = product;
@@ -575,6 +595,9 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
     const branch = document.getElementById('checkout-branch').value;
     const delivery = document.querySelector('input[name="delivery"]:checked')?.value || 'Нова Пошта';
 
+    const userEmail = currentUser ? currentUser.email : "немає пошти";
+    const nameWithEmail = `${pib} — ${userEmail}`;
+
     let itemsText = '';
     let totalSum = 0;
     itemsToProcess.forEach(item => {
@@ -582,7 +605,7 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
         totalSum += item.price;
     });
 
-    const message = `🚨 *Нове замовлення!*\n\n👤 *Покупець:* ${pib}\n📞 *Телефон:* ${phone}\n📧 *Email:* ${email}\n📍 *Місто:* ${city}\n🚚 *Служба:* ${delivery}\n🏢 *Відділення/Поштомат:* ${branch}\n\n🛒 *Товари:*\n${itemsText}\n💰 *Всього до сплати:* ${totalSum}₴`;
+    const message = `🚨 *Нове замовлення!*\n\n👤 *Покупець:* ${nameWithEmail}\n📞 *Телефон:* ${phone}\n📧 *Email:* ${email}\n📍 *Місто:* ${city}\n🚚 *Служба:* ${delivery}\n🏢 *Відділення/Поштомат:* ${branch}\n\n🛒 *Товари:*\n${itemsText}\n💰 *Всього до сплати:* ${totalSum}₴`;
 
     try {
         await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
@@ -591,7 +614,7 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
             body: JSON.stringify({ chat_id: TG_CHAT_ID, text: message, parse_mode: 'Markdown' })
         });
         
-        alert('Замовлення успішно надіслано!');
+        alert('Замовлення успешно надіслано!');
 
         if (confirm("Бажаєте зберігти дані для майбутніх покупок?")) {
             localStorage.setItem('checkout_name', pib);
@@ -641,7 +664,11 @@ lightThemeBtn.addEventListener('click', () => applyTheme('light'));
 darkThemeBtn.addEventListener('click', () => applyTheme('dark'));
 
 document.getElementById('buy').addEventListener('click', () => {
-    if(checkoutItems.length > 0) {
+    if (!currentUser) {
+        alert("Перш ніж оформляти замовлення ви маєте зареєструватись, «Налаштування - увійти»");
+        return;
+    }
+    if (checkoutItems.length > 0) {
         isOneClickCheckout = false;
         oneClickItem = null;
         updateCheckoutUI();
@@ -655,4 +682,3 @@ document.getElementById('checkout-btn-back').addEventListener('click', () => {
     isOneClickCheckout = false;
     oneClickItem = null;
 });
-
