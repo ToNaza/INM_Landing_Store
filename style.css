@@ -999,3 +999,50 @@ body.light-mode .faq-container::-webkit-scrollbar-thumb {
 .light-mode .status-sold {
     color: #ff0000; /* Более темный красный */
 }
+
+
+
+/* Строка пользователя в админ-панели */
+.admin-user-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: #8c8c8c;
+    border-radius: 10px;
+}
+
+/* Почта пользователя */
+.admin-user-email {
+    color: #000;
+    font-size: 14px;
+    font-weight: bold;
+    word-break: break-all;
+    padding-right: 10px;
+}
+
+/* Кнопка забанить (красная) */
+.admin-ban-btn {
+    background: #ef4444;
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s;
+    min-width: 100px;
+}
+
+.admin-ban-btn:hover {
+    background: #dc2626;
+}
+
+/* Кнопка разбанить (зелёная, когда статус banned: true) */
+.admin-ban-btn.banned {
+    background: #10b981;
+}
+
+.admin-ban-btn.banned:hover {
+    background: #059669;
+}

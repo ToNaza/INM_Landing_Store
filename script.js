@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, setDoc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 const firebaseConfig = {
@@ -32,12 +32,10 @@ let checkoutItems = [];
 let editingProductId = null; 
 let modalCarouselInterval = null;
 
-// Хранилища для синхронизации ID из аккаунта
 let allProducts = [];
 let savedWishesIds = [];
 let savedCartIds = [];
 
-// Стан для замовлення в 1 клік
 let isOneClickCheckout = false;
 let oneClickItem = null;
 
@@ -46,6 +44,7 @@ const modalWishes = document.getElementById('modal-wishes');
 const modalCart = document.getElementById('modal-cart');
 const modalSettings = document.getElementById('modal-settings');
 const modalInfo = document.getElementById('modal-info');
+const modalAdminUsers = document.getElementById('modal-admin-users');
 const checkoutBackdrop = document.getElementById('checkout-backdrop');
 const addItemBackdrop = document.getElementById('add-item-backdrop');
 
@@ -54,7 +53,6 @@ const userNameEl = document.getElementById('user-name');
 const userAvatarImg = document.querySelector('.user-avatar img');
 const productsContainer = document.querySelector('.list');
 
-// ЗАВАНТАЖЕННЯ ЗБЕРЕЖЕНИХ ДАНИХ КОРИСТУВАЧА (Форма)
 function loadSavedUserData() {
     if (localStorage.getItem('checkout_name')) document.getElementById('checkout-name').value = localStorage.getItem('checkout_name');
     if (localStorage.getItem('checkout_phone')) document.getElementById('checkout-phone').value = localStorage.getItem('checkout_phone');
@@ -64,7 +62,6 @@ function loadSavedUserData() {
 }
 loadSavedUserData();
 
-// СИНХРОНІЗАЦІЯ ДАНИХ З ОБЕКТАМИ БАЗИ ДАНИХ
 function syncListsWithAllProducts() {
     if (currentUser) {
         wishesList = allProducts.filter(p => savedWishesIds.includes(p.id));
@@ -76,22 +73,20 @@ function syncListsWithAllProducts() {
     updateListsUI();
 }
 
-// ЗБЕРЕЖЕННЯ СПИСКІВ В FIRESTORE
 async function saveUserDataToFirebase() {
     if (!currentUser) return;
     try {
         savedWishesIds = wishesList.map(item => item.id);
         savedCartIds = checkoutItems.map(item => item.id);
-        await setDoc(doc(db, "users", currentUser.uid), {
+        await updateDoc(doc(db, "users", currentUser.uid), {
             wishes: savedWishesIds,
             cart: savedCartIds
-        }, { merge: true });
+        });
     } catch (e) {
         console.error("Помилка збереження даних користувача:", e);
     }
 }
 
-// АВТОРИЗАЦІЯ
 document.querySelector('.user-row').addEventListener('click', () => {
     if (!currentUser) {
         signInWithPopup(auth, provider).catch(err => console.error(err));
@@ -106,14 +101,32 @@ onAuthStateChanged(auth, async (user) => {
         if (userNameEl) userNameEl.textContent = user.displayName || user.email;
         if (userAvatarImg) userAvatarImg.src = user.photoURL || "./media/profile.svg";
         
-        // Завантаження списків з аккаунту
         try {
             const userDoc = await getDoc(doc(db, "users", user.uid));
             if (userDoc.exists()) {
                 const data = userDoc.data();
+                
+                // Проверка на бан
+                if (data.banned) {
+                    window.location.href = 'bun.html';
+                    return;
+                }
+
+                // Дописываем email, если его не было в старых записях
+                if (!data.email) {
+                    await updateDoc(doc(db, "users", user.uid), { email: user.email });
+                }
+
                 savedWishesIds = data.wishes || [];
                 savedCartIds = data.cart || [];
             } else {
+                // Создаем профиль пользователя с почтой и статусом бана
+                await setDoc(doc(db, "users", user.uid), {
+                    email: user.email,
+                    banned: false,
+                    wishes: [],
+                    cart: []
+                });
                 savedWishesIds = [];
                 savedCartIds = [];
             }
@@ -132,6 +145,7 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
+// Горячие клавиши для админа
 document.addEventListener('keydown', (event) => {
     if (event.shiftKey && event.code === 'KeyA') {
         event.preventDefault();
@@ -143,9 +157,73 @@ document.addEventListener('keydown', (event) => {
             alert("Доступ обмежено. Необхідні права адміністратора.");
         }
     }
+
+    // Открытие панели пользователей на Shift+P (З)
+    if (event.shiftKey && event.code === 'KeyP') {
+        event.preventDefault();
+        if (currentUser && currentUser.uid === ADMIN_UID) {
+            openAdminUsersModal();
+        } else {
+            alert("Доступ обмежено. Необхідні права адміністратора.");
+        }
+    }
 });
 
-// === ФУНКЦИИ ОТКРЫТИЯ / ЗАКРЫТИЯ ===
+// Функция загрузки и открытия админ панели пользователей
+async function openAdminUsersModal() {
+    closeWishes();
+    closeCart();
+    closeSettings();
+    closeInfo();
+    
+    if (modalAdminUsers) modalAdminUsers.classList.add('active');
+
+    const container = document.getElementById('admin-users-list');
+    container.innerHTML = '<span style="color:#fff;">Завантаження...</span>';
+
+    try {
+        const usersSnap = await getDocs(collection(db, "users"));
+        container.innerHTML = '';
+
+        usersSnap.forEach(docSnap => {
+            const userData = docSnap.data();
+            const uid = docSnap.id;
+            
+            // Админа не выводим, чтобы он сам себя не забанил
+            if (uid === ADMIN_UID) return;
+
+            const email = userData.email || 'Немає пошти';
+            const isBanned = userData.banned || false;
+
+            const userRow = document.createElement('div');
+            userRow.className = 'admin-user-row';
+            userRow.innerHTML = `
+                <span class="admin-user-email">${email}</span>
+                <button class="admin-ban-btn ${isBanned ? 'banned' : ''}">${isBanned ? 'Розбанити' : 'Забанити'}</button>
+            `;
+
+            userRow.querySelector('.admin-ban-btn').onclick = async () => {
+                const newBanState = !isBanned;
+                await updateDoc(doc(db, "users", uid), { banned: newBanState });
+                openAdminUsersModal(); // Обновляем список после изменения
+            };
+
+            container.appendChild(userRow);
+        });
+
+        if (container.innerHTML === '') {
+            container.innerHTML = '<span style="color:#a1a1aa;">Користувачів не знайдено</span>';
+        }
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = '<span style="color:#ef4444;">Помилка завантаження</span>';
+    }
+}
+
+function closeAdminUsers() {
+    if (modalAdminUsers) modalAdminUsers.classList.remove('active');
+}
+
 function closeWishes() {
     modalWishes.classList.remove('active');
     if (document.querySelector('#main-wishes-btn img')) {
@@ -172,6 +250,7 @@ function openWishes() {
     closeCart(); 
     closeSettings(); 
     closeInfo();
+    closeAdminUsers();
     modalWishes.classList.add('active');
     if (document.querySelector('#main-wishes-btn img')) {
         document.querySelector('#main-wishes-btn img').src = './media/love_on.svg';
@@ -182,6 +261,7 @@ function openCart() {
     closeWishes();
     closeSettings();
     closeInfo();
+    closeAdminUsers();
     modalCart.classList.add('active');
     if (document.querySelector('#main-cart-btn img')) {
         document.querySelector('#main-cart-btn img').src = './media/basket_on.svg';
@@ -192,21 +272,20 @@ function openSettings() {
     closeWishes();
     closeCart();
     closeInfo();
+    closeAdminUsers();
     modalSettings.classList.add('active');
 }
-
-// === НАВЕШИВАНИЕ СОБЫТИЙ НА КНОПКИ ===
 
 if (infoBtn) {
     infoBtn.addEventListener('click', () => {
         closeWishes();
         closeCart();
         closeSettings();
+        closeAdminUsers();
         modalInfo.classList.add('active');
     });
 }
 
-// Бажане
 document.querySelectorAll('#main-wishes-btn, #modal-cart-wishes-btn, #modal-wishes-close-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -214,7 +293,6 @@ document.querySelectorAll('#main-wishes-btn, #modal-cart-wishes-btn, #modal-wish
     });
 });
 
-// Кошик
 document.querySelectorAll('#main-cart-btn, #modal-wishes-cart-btn, #modal-cart-close-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -222,7 +300,6 @@ document.querySelectorAll('#main-cart-btn, #modal-wishes-cart-btn, #modal-cart-c
     });
 });
 
-// Настройки
 document.querySelectorAll('#main-settings-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -235,14 +312,12 @@ window.addEventListener('click', (e) => {
     if (e.target === modalWishes) closeWishes();
     if (e.target === modalCart) closeCart();
     if (e.target === modalInfo) closeInfo();
+    if (e.target === modalAdminUsers) closeAdminUsers();
     if (e.target === modalBackdrop) {
         modalBackdrop.classList.remove('active');
         if (modalCarouselInterval) clearInterval(modalCarouselInterval);
     }
 });
-
-document.getElementById('modal-wishes-close-btn').addEventListener('click', () => modalWishes.classList.remove('active'));
-document.getElementById('modal-cart-close-btn').addEventListener('click', () => modalCart.classList.remove('active'));
 
 function createCardElement(product) {
     const card = document.createElement('div');
@@ -274,13 +349,13 @@ function createCardElement(product) {
         closeCart();
         closeSettings();
         closeInfo();
+        closeAdminUsers();
         openProductModal(product);
     });
 
     return card;
 }
 
-// ОНОВЛЕННЯ UI СПИСКІВ
 function updateListsUI() {
     const wishesContainer = document.querySelector('#modal-wishes .list');
     const cartContainer = document.querySelector('#modal-cart .list');
@@ -298,7 +373,6 @@ function updateListsUI() {
     updateCheckoutUI();
 }
 
-// ОНОВЛЕННЯ ВІКНА ЗАМОВЛЕННЯ
 function updateCheckoutUI() {
     const checkoutContainer = document.getElementById('checkout-items-container');
     const totalSumEl = document.getElementById('checkout-total-sum');
@@ -322,16 +396,6 @@ function updateCheckoutUI() {
     }
 }
 
-function startImageCarousel(imgElement, imagesArray) {
-    if (!imagesArray || imagesArray.length <= 1) return;
-    let currentIndex = 0;
-    setInterval(() => {
-        currentIndex = (currentIndex + 1) % imagesArray.length;
-        imgElement.src = imagesArray[currentIndex];
-    }, 6000); 
-}
-
-// СИНХРОНІЗАЦІЯ ТОВАРІВ
 onSnapshot(collection(db, "products"), (snapshot) => {
     allProducts = [];
     productsContainer.innerHTML = '';
@@ -493,7 +557,6 @@ function openProductModal(product) {
     modalBackdrop.classList.add('active');
 }
 
-// ДОБАВЛЕНИЕ / РЕДАКТИРОВАНИЕ ТОВАРА
 const photoInput = document.getElementById('photo-input');
 let uploadedFiles = [];
 
@@ -581,7 +644,6 @@ function closeAddItemModal() {
 }
 document.getElementById('add-btn-cancel').addEventListener('click', closeAddItemModal);
 
-// ОФОРМЛЕНИЕ ЗАКАЗА В TELEGRAM
 document.getElementById('checkout-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -614,7 +676,7 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
             body: JSON.stringify({ chat_id: TG_CHAT_ID, text: message, parse_mode: 'Markdown' })
         });
         
-        alert('Замовлення успешно надіслано!');
+        alert('Замовлення успішно надіслано!');
 
         if (confirm("Бажаєте зберігти дані для майбутніх покупок?")) {
             localStorage.setItem('checkout_name', pib);
@@ -644,7 +706,6 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
     }
 });
 
-// ТЕМЫ И НАСТРОЙКИ
 const lightThemeBtn = document.querySelector('.light-btn');
 const darkThemeBtn = document.querySelector('.dark-btn');
 function applyTheme(theme) {
