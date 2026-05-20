@@ -106,13 +106,11 @@ onAuthStateChanged(auth, async (user) => {
             if (userDoc.exists()) {
                 const data = userDoc.data();
                 
-                // Проверка на бан
                 if (data.banned) {
                     window.location.href = 'bun.html';
                     return;
                 }
 
-                // Дописываем email, если его не было в старых записях
                 if (!data.email) {
                     await updateDoc(doc(db, "users", user.uid), { email: user.email });
                 }
@@ -120,7 +118,6 @@ onAuthStateChanged(auth, async (user) => {
                 savedWishesIds = data.wishes || [];
                 savedCartIds = data.cart || [];
             } else {
-                // Создаем профиль пользователя с почтой и статусом бана
                 await setDoc(doc(db, "users", user.uid), {
                     email: user.email,
                     banned: false,
@@ -145,7 +142,6 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// Горячие клавиши для админа
 document.addEventListener('keydown', (event) => {
     if (event.shiftKey && event.code === 'KeyA') {
         event.preventDefault();
@@ -158,7 +154,6 @@ document.addEventListener('keydown', (event) => {
         }
     }
 
-    // Открытие панели пользователей на Shift+P (З)
     if (event.shiftKey && event.code === 'KeyP') {
         event.preventDefault();
         if (currentUser && currentUser.uid === ADMIN_UID) {
@@ -169,7 +164,6 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
-// Функция загрузки и открытия админ панели пользователей
 async function openAdminUsersModal() {
     closeWishes();
     closeCart();
@@ -179,17 +173,17 @@ async function openAdminUsersModal() {
     if (modalAdminUsers) modalAdminUsers.classList.add('active');
 
     const container = document.getElementById('admin-users-list');
-    container.innerHTML = '<span style="color:#fff;">Завантаження...</span>';
+    if (container) container.innerHTML = '<span style="color:#000;">Завантаження...</span>';
 
     try {
         const usersSnap = await getDocs(collection(db, "users"));
+        if (!container) return;
         container.innerHTML = '';
 
         usersSnap.forEach(docSnap => {
             const userData = docSnap.data();
             const uid = docSnap.id;
             
-            // Админа не выводим, чтобы он сам себя не забанил
             if (uid === ADMIN_UID) return;
 
             const email = userData.email || 'Немає пошти';
@@ -205,18 +199,18 @@ async function openAdminUsersModal() {
             userRow.querySelector('.admin-ban-btn').onclick = async () => {
                 const newBanState = !isBanned;
                 await updateDoc(doc(db, "users", uid), { banned: newBanState });
-                openAdminUsersModal(); // Обновляем список после изменения
+                openAdminUsersModal(); 
             };
 
             container.appendChild(userRow);
         });
 
         if (container.innerHTML === '') {
-            container.innerHTML = '<span style="color:#a1a1aa;">Користувачів не знайдено</span>';
+            container.innerHTML = '<span style="color:#444;">Користувачів не знайдено</span>';
         }
     } catch (e) {
         console.error(e);
-        container.innerHTML = '<span style="color:#ef4444;">Помилка завантаження</span>';
+        if (container) container.innerHTML = '<span style="color:#ef4444;">Помилка завантаження</span>';
     }
 }
 
@@ -398,12 +392,12 @@ function updateCheckoutUI() {
 
 onSnapshot(collection(db, "products"), (snapshot) => {
     allProducts = [];
-    productsContainer.innerHTML = '';
+    if (productsContainer) productsContainer.innerHTML = '';
     snapshot.forEach((doc) => {
         const product = { id: doc.id, ...doc.data() };
         allProducts.push(product);
         const card = createCardElement(product);
-        productsContainer.appendChild(card);
+        if (productsContainer) productsContainer.appendChild(card);
     });
     syncListsWithAllProducts();
 });
@@ -467,15 +461,15 @@ function openProductModal(product) {
     const heartBtnImg = document.querySelector('#modal-heart img');
     const basketBtnImg = document.querySelector('#modal-basket img');
 
-    heartBtnImg.src = wishesList.some(item => item.id === product.id) ? './media/love_on.svg' : './media/love_off.svg';
-    basketBtnImg.src = checkoutItems.some(item => item.id === product.id) ? './media/basket_on.svg' : './media/basket_off.svg';
+    if (heartBtnImg) heartBtnImg.src = wishesList.some(item => item.id === product.id) ? './media/love_on.svg' : './media/love_off.svg';
+    if (basketBtnImg) basketBtnImg.src = checkoutItems.some(item => item.id === product.id) ? './media/basket_on.svg' : './media/basket_off.svg';
 
     document.getElementById('modal-heart').onclick = async (e) => {
         e.stopPropagation();
         const idx = wishesList.findIndex(item => item.id === product.id);
         if (idx > -1) wishesList.splice(idx, 1);
         else wishesList.push(product);
-        heartBtnImg.src = wishesList.some(item => item.id === product.id) ? './media/love_on.svg' : './media/love_off.svg';
+        if (heartBtnImg) heartBtnImg.src = wishesList.some(item => item.id === product.id) ? './media/love_on.svg' : './media/love_off.svg';
         await saveUserDataToFirebase();
         updateListsUI();
     };
@@ -485,12 +479,13 @@ function openProductModal(product) {
         const idx = checkoutItems.findIndex(item => item.id === product.id);
         if (idx > -1) checkoutItems.splice(idx, 1);
         else checkoutItems.push(product);
-        basketBtnImg.src = checkoutItems.some(item => item.id === product.id) ? './media/basket_on.svg' : './media/basket_off.svg';
+        if (basketBtnImg) basketBtnImg.src = checkoutItems.some(item => item.id === product.id) ? './media/basket_on.svg' : './media/basket_off.svg';
         await saveUserDataToFirebase();
         updateListsUI();
     };
 
     const textButtonsContainer = document.querySelector('.text-buttons');
+    if (!textButtonsContainer) return;
     
     if (currentUser && currentUser.uid === ADMIN_UID) {
         textButtonsContainer.innerHTML = `
@@ -560,186 +555,204 @@ function openProductModal(product) {
 const photoInput = document.getElementById('photo-input');
 let uploadedFiles = [];
 
-photoInput.addEventListener('change', (e) => {
-    const files = Array.from(e.target.files);
-    files.forEach(file => {
-        if (uploadedFiles.length < 3 && file.type.startsWith('image/')) {
-            uploadedFiles.push(file);
-            const img = document.createElement('img');
-            img.src = URL.createObjectURL(file);
-            img.className = 'photo-preview';
-            img.style.width = '60px'; 
-            img.style.height = '60px';
-            img.style.objectFit = 'cover';
-            img.style.borderRadius = '5px';
-            document.getElementById('photo-preview-container').insertBefore(img, document.getElementById('add-photo-btn'));
+if (photoInput) {
+    photoInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files);
+        files.forEach(file => {
+            if (uploadedFiles.length < 3 && file.type.startsWith('image/')) {
+                uploadedFiles.push(file);
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                img.className = 'photo-preview';
+                img.style.width = '60px'; 
+                img.style.height = '60px';
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '5px';
+                document.getElementById('photo-preview-container').insertBefore(img, document.getElementById('add-photo-btn'));
+            }
+        });
+        if (uploadedFiles.length >= 3) document.getElementById('add-photo-btn').style.display = 'none';
+    });
+}
+
+const addItemForm = document.getElementById('add-item-form');
+if (addItemForm) {
+    addItemForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentUser || currentUser.uid !== ADMIN_UID) return;
+
+        const createBtn = document.getElementById('add-btn-create');
+        if (!createBtn) return;
+
+        createBtn.disabled = true;
+        createBtn.textContent = "Завантаження...";
+
+        try {
+            const imageUrls = [];
+
+            for (const file of uploadedFiles) {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+
+                const { data, error } = await supabase.storage
+                    .from('product-images')
+                    .upload(fileName, file);
+
+                if (error) throw error;
+
+                const { data: publicUrlData } = supabase.storage
+                    .from('product-images')
+                    .getPublicUrl(fileName);
+
+                imageUrls.push(publicUrlData.publicUrl);
+            }
+
+            const productData = {
+                name: document.getElementById('add-name').value,
+                desc: document.getElementById('add-desc').value,
+                price: Number(document.getElementById('add-price').value),
+                qty: Number(document.getElementById('add-qty').value),
+                olxLink: document.getElementById('add-link').value || ""
+            };
+
+            if (typeof editingProductId !== 'undefined' && editingProductId) {
+                if (imageUrls.length > 0) productData.images = imageUrls;
+                await updateDoc(doc(db, "products", editingProductId), productData);
+            } else {
+                productData.images = imageUrls;
+                await addDoc(collection(db, "products"), productData);
+            }
+
+            closeAddItemModal();
+        } catch (err) {
+            console.error(err);
+            alert(`Не вдалося зберегти: ${err.message || err.code || err}`);
+        } finally {
+            createBtn.disabled = false;
+            createBtn.textContent = (typeof editingProductId !== 'undefined' && editingProductId) ? "Зберегти" : "Створити";
         }
     });
-    if (uploadedFiles.length >= 3) document.getElementById('add-photo-btn').style.display = 'none';
-});
-
-document.getElementById('add-item-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!currentUser || currentUser.uid !== ADMIN_UID) return;
-
-    const createBtn = document.getElementById('add-btn-create');
-    if (!createBtn) return console.error("Кнопка #add-btn-create не знайдена в HTML");
-
-    createBtn.disabled = true;
-    createBtn.textContent = "Завантаження...";
-
-    try {
-        const imageUrls = [];
-
-        for (const file of uploadedFiles) {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-
-            const { data, error } = await supabase.storage
-                .from('product-images')
-                .upload(fileName, file);
-
-            if (error) throw error;
-
-            const { data: publicUrlData } = supabase.storage
-                .from('product-images')
-                .getPublicUrl(fileName);
-
-            imageUrls.push(publicUrlData.publicUrl);
-        }
-
-        const productData = {
-            name: document.getElementById('add-name').value,
-            desc: document.getElementById('add-desc').value,
-            price: Number(document.getElementById('add-price').value),
-            qty: Number(document.getElementById('add-qty').value),
-            olxLink: document.getElementById('add-link').value || ""
-        };
-
-        if (typeof editingProductId !== 'undefined' && editingProductId) {
-            if (imageUrls.length > 0) productData.images = imageUrls;
-            await updateDoc(doc(db, "products", editingProductId), productData);
-        } else {
-            productData.images = imageUrls;
-            await addDoc(collection(db, "products"), productData);
-        }
-
-        closeAddItemModal();
-    } catch (err) {
-        console.error("Помилка при збереженні товару:", err);
-        alert(`Не вдалося зберегти: ${err.message || err.code || err}`);
-    } finally {
-        createBtn.disabled = false;
-        createBtn.textContent = (typeof editingProductId !== 'undefined' && editingProductId) ? "Зберегти" : "Створити";
-    }
-});
+}
 
 function closeAddItemModal() {
-    addItemBackdrop.classList.remove('active');
-    document.getElementById('add-item-form').reset();
+    if (addItemBackdrop) addItemBackdrop.classList.remove('active');
+    const form = document.getElementById('add-item-form');
+    if (form) form.reset();
     uploadedFiles = [];
     document.querySelectorAll('.photo-preview').forEach(p => p.remove());
-    document.getElementById('add-photo-btn').style.display = 'flex';
+    const addPhotoBtn = document.getElementById('add-photo-btn');
+    if (addPhotoBtn) addPhotoBtn.style.display = 'flex';
     editingProductId = null;
 }
-document.getElementById('add-btn-cancel').addEventListener('click', closeAddItemModal);
 
-document.getElementById('checkout-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    let itemsToProcess = isOneClickCheckout ? [oneClickItem] : checkoutItems;
-    if (itemsToProcess.length === 0) return alert("Корзина порожня!");
+const cancelBtn = document.getElementById('add-btn-cancel');
+if (cancelBtn) cancelBtn.addEventListener('click', closeAddItemModal);
 
-    const pib = document.getElementById('checkout-name').value;
-    const phone = document.getElementById('checkout-phone').value;
-    const email = document.getElementById('checkout-email').value || 'Не вказано';
-    const city = document.getElementById('checkout-city').value;
-    const branch = document.getElementById('checkout-branch').value;
-    const delivery = document.querySelector('input[name="delivery"]:checked')?.value || 'Нова Пошта';
+const checkoutForm = document.getElementById('checkout-form');
+if (checkoutForm) {
+    checkoutForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        let itemsToProcess = isOneClickCheckout ? [oneClickItem] : checkoutItems;
+        if (itemsToProcess.length === 0) return alert("Корзина порожня!");
 
-    const userEmail = currentUser ? currentUser.email : "немає пошти";
-    const nameWithEmail = `${pib} — ${userEmail}`;
+        const pib = document.getElementById('checkout-name').value;
+        const phone = document.getElementById('checkout-phone').value;
+        const email = document.getElementById('checkout-email').value || 'Не вказано';
+        const city = document.getElementById('checkout-city').value;
+        const branch = document.getElementById('checkout-branch').value;
+        const delivery = document.querySelector('input[name="delivery"]:checked')?.value || 'Нова Пошта';
 
-    let itemsText = '';
-    let totalSum = 0;
-    itemsToProcess.forEach(item => {
-        itemsText += `📦 *${item.name}* — ${item.price}₴\n`;
-        totalSum += item.price;
-    });
+        const userEmail = currentUser ? currentUser.email : "немає пошти";
+        const nameWithEmail = `${pib} — ${userEmail}`;
 
-    const message = `🚨 *Нове замовлення!*\n\n👤 *Покупець:* ${nameWithEmail}\n📞 *Телефон:* ${phone}\n📧 *Email:* ${email}\n📍 *Місто:* ${city}\n🚚 *Служба:* ${delivery}\n🏢 *Відділення/Поштомат:* ${branch}\n\n🛒 *Товари:*\n${itemsText}\n💰 *Всього до сплати:* ${totalSum}₴`;
-
-    try {
-        await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: TG_CHAT_ID, text: message, parse_mode: 'Markdown' })
+        let itemsText = '';
+        let totalSum = 0;
+        itemsToProcess.forEach(item => {
+            itemsText += `📦 *${item.name}* — ${item.price}₴\n`;
+            totalSum += item.price;
         });
-        
-        alert('Замовлення успішно надіслано!');
 
-        if (confirm("Бажаєте зберігти дані для майбутніх покупок?")) {
-            localStorage.setItem('checkout_name', pib);
-            localStorage.setItem('checkout_phone', phone);
-            localStorage.setItem('checkout_email', email);
-            localStorage.setItem('checkout_city', city);
-            localStorage.setItem('checkout_branch', branch);
+        const message = `🚨 *Нове замовлення!*\n\n👤 *Покупець:* ${nameWithEmail}\n📞 *Телефон:* ${phone}\n📧 *Email:* ${email}\n📍 *Місто:* ${city}\n🚚 *Служба:* ${delivery}\n🏢 *Відділення/Поштомат:* ${branch}\n\n🛒 *Товари:*\n${itemsText}\n💰 *Всього до сплати:* ${totalSum}₴`;
+
+        try {
+            await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: TG_CHAT_ID, text: message, parse_mode: 'Markdown' })
+            });
+            
+            alert('Замовлення успешно надіслано!');
+
+            if (confirm("Бажаєте зберігти дані для майбутніх покупок?")) {
+                localStorage.setItem('checkout_name', pib);
+                localStorage.setItem('checkout_phone', phone);
+                localStorage.setItem('checkout_email', email);
+                localStorage.setItem('checkout_city', city);
+                localStorage.setItem('checkout_branch', branch);
+            }
+
+            if (!isOneClickCheckout) {
+                checkoutItems = []; 
+                await saveUserDataToFirebase();
+            }
+            
+            isOneClickCheckout = false;
+            oneClickItem = null;
+            
+            checkoutForm.reset();
+            loadSavedUserData(); 
+
+            updateListsUI();
+            if (checkoutBackdrop) checkoutBackdrop.classList.remove('active');
+            
+        } catch (err) {
+            console.error(err);
+            alert(`Не вдалося надіслати: ${err.message || err.code || err}`);
         }
-
-        if (!isOneClickCheckout) {
-            checkoutItems = []; 
-            await saveUserDataToFirebase();
-        }
-        
-        isOneClickCheckout = false;
-        oneClickItem = null;
-        
-        document.getElementById('checkout-form').reset();
-        loadSavedUserData(); 
-
-        updateListsUI();
-        checkoutBackdrop.classList.remove('active');
-        
-    } catch (err) {
-        console.error("Помилка при надсиланні замовлення:", err);
-        alert(`Не вдалося надіслати: ${err.message || err.code || err}`);
-    }
-});
+    });
+}
 
 const lightThemeBtn = document.querySelector('.light-btn');
 const darkThemeBtn = document.querySelector('.dark-btn');
 function applyTheme(theme) {
     if (theme === 'light') {
         document.body.classList.add('light-mode');
-        lightThemeBtn.classList.add('active');
-        darkThemeBtn.classList.remove('active');
+        if (lightThemeBtn) lightThemeBtn.classList.add('active');
+        if (darkThemeBtn) darkThemeBtn.classList.remove('active');
     } else {
         document.body.classList.remove('light-mode');
-        darkThemeBtn.classList.add('active');
-        lightThemeBtn.classList.remove('active');
+        if (darkThemeBtn) darkThemeBtn.classList.add('active');
+        if (lightThemeBtn) lightThemeBtn.classList.remove('active');
     }
     localStorage.setItem('app_theme', theme);
 }
 applyTheme(localStorage.getItem('app_theme') || 'dark');
-lightThemeBtn.addEventListener('click', () => applyTheme('light'));
-darkThemeBtn.addEventListener('click', () => applyTheme('dark'));
+if (lightThemeBtn) lightThemeBtn.addEventListener('click', () => applyTheme('light'));
+if (darkThemeBtn) darkThemeBtn.addEventListener('click', () => applyTheme('dark'));
 
-document.getElementById('buy').addEventListener('click', () => {
-    if (!currentUser) {
-        alert("Перш ніж оформляти замовлення ви маєте зареєструватись, «Налаштування - увійти»");
-        return;
-    }
-    if (checkoutItems.length > 0) {
+const buyBtn = document.getElementById('buy');
+if (buyBtn) {
+    buyBtn.addEventListener('click', () => {
+        if (!currentUser) {
+            alert("Перш ніж оформляти замовлення ви маєте зареєструватись, «Налаштування - увійти»");
+            return;
+        }
+        if (checkoutItems.length > 0) {
+            isOneClickCheckout = false;
+            oneClickItem = null;
+            updateCheckoutUI();
+            modalCart.classList.remove('active'); 
+            if (checkoutBackdrop) checkoutBackdrop.classList.add('active');
+        }
+    });
+}
+
+const backBtn = document.getElementById('checkout-btn-back');
+if (backBtn) {
+    backBtn.addEventListener('click', () => {
+        if (checkoutBackdrop) checkoutBackdrop.classList.remove('active');
         isOneClickCheckout = false;
         oneClickItem = null;
-        updateCheckoutUI();
-        modalCart.classList.remove('active'); 
-        checkoutBackdrop.classList.add('active');
-    }
-});
-
-document.getElementById('checkout-btn-back').addEventListener('click', () => {
-    checkoutBackdrop.classList.remove('active');
-    isOneClickCheckout = false;
-    oneClickItem = null;
-});
+    });
+}
