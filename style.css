@@ -1039,7 +1039,7 @@ body.light-mode .faq-container::-webkit-scrollbar-thumb {
 
 /* Кнопка разбанить (зелёная, когда статус banned: true) */
 .admin-ban-btn.banned {
-    background: #afafaf;
+    background: #444444;
 }
 
 .admin-ban-btn.banned:hover {
