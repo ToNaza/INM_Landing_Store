@@ -219,21 +219,21 @@ function closeAdminUsers() {
 }
 
 function closeWishes() {
-    modalWishes.classList.remove('active');
+    if (modalWishes) modalWishes.classList.remove('active');
     if (document.querySelector('#main-wishes-btn img')) {
         document.querySelector('#main-wishes-btn img').src = './media/love_off.svg';
     }
 }
 
 function closeCart() {
-    modalCart.classList.remove('active');
+    if (modalCart) modalCart.classList.remove('active');
     if (document.querySelector('#main-cart-btn img')) {
         document.querySelector('#main-cart-btn img').src = './media/basket_off.svg';
     }
 }
 
 function closeSettings() {
-    modalSettings.classList.remove('active');
+    if (modalSettings) modalSettings.classList.remove('active');
 }
 
 function closeInfo() {
@@ -245,7 +245,7 @@ function openWishes() {
     closeSettings(); 
     closeInfo();
     closeAdminUsers();
-    modalWishes.classList.add('active');
+    if (modalWishes) modalWishes.classList.add('active');
     if (document.querySelector('#main-wishes-btn img')) {
         document.querySelector('#main-wishes-btn img').src = './media/love_on.svg';
     }
@@ -256,7 +256,7 @@ function openCart() {
     closeSettings();
     closeInfo();
     closeAdminUsers();
-    modalCart.classList.add('active');
+    if (modalCart) modalCart.classList.add('active');
     if (document.querySelector('#main-cart-btn img')) {
         document.querySelector('#main-cart-btn img').src = './media/basket_on.svg';
     }
@@ -267,7 +267,7 @@ function openSettings() {
     closeCart();
     closeInfo();
     closeAdminUsers();
-    modalSettings.classList.add('active');
+    if (modalSettings) modalSettings.classList.add('active');
 }
 
 if (infoBtn) {
@@ -276,7 +276,7 @@ if (infoBtn) {
         closeCart();
         closeSettings();
         closeAdminUsers();
-        modalInfo.classList.add('active');
+        if (modalInfo) modalInfo.classList.add('active');
     });
 }
 
