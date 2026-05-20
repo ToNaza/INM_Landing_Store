@@ -822,7 +822,6 @@ body.light-mode .faq-item {
 
 .faq-question {
     font-family: 'Jura', sans-serif;
-    
     font-size: 20px;
 }
 
@@ -1040,9 +1039,9 @@ body.light-mode .faq-container::-webkit-scrollbar-thumb {
 
 /* Кнопка разбанить (зелёная, когда статус banned: true) */
 .admin-ban-btn.banned {
-    background: #10b981;
+    background: #afafaf;
 }
 
 .admin-ban-btn.banned:hover {
-    background: #059669;
+    background: #6b6b6b;
 }

@@ -4,8 +4,99 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Baned</title>
+
+    <link rel="icon" href="./media/INM_Logo.png">
+
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Jura&family=Kalam&family=Pacifico&family=Roboto+Mono&display=swap" rel="stylesheet">
+    <link  href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
 </head>
 <body>
-    <h1>Упс здається ви забанені</h1>
+    <div class="block">
+        <p>Упс, здається ви отримали блокування профілю через порушення внутрішніх правил, якщо ви вважаєте що блокування помилкове, зверніться до адміністратора INM в телеграм за посиланням нижче</p>
+        <button onclick="window.location.href='https://t.me/inm_shop_admin'">Перейти до чату</button>
+    </div>
 </body>
+
+ <style>
+
+    * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+    width: 100%;
+    }
+ 
+ body{
+background: #383838;
+background: linear-gradient(182deg, rgba(56, 56, 56, 1) 0%, rgba(0, 0, 0, 1) 100%);
+padding: 10px;
+}
+
+@media screen and (max-width: 800px){
+    body{
+        padding-top: 25%;
+    }
+}
+
+/* Регистрируем кастомное свойство, чтобы браузер понял, как его анимировать */
+@property --gradient-color {
+  syntax: '<color>';
+  initial-value: rgba(56, 56, 56, 1);
+  inherits: false;
+}
+
+body {
+  /* Важно задать min-height, чтобы градиент растянулся на весь экран, а не повторялся */
+  min-height: 100vh; 
+  margin: 0;
+
+  /* Подставляем нашу переменную вместо статичного серого цвета */
+  background: #383838;
+  background: linear-gradient(182deg, var(--gradient-color) 0%, rgba(0, 0, 0, 1) 100%);
+  
+  /* Запускаем анимацию: имя, длительность (8 секунд), бесконечно, плавно туда-обратно */
+  animation: colorShift 8s ease-in-out infinite alternate;
+}
+
+/* Описываем саму анимацию */
+@keyframes colorShift {
+  0% {
+    --gradient-color: rgba(56, 56, 56, 1); /* Исходный серый */
+  }
+  100% {
+    --gradient-color: rgb(121, 0, 0); /* Темно-красный (DarkRed) */
+  }
+}
+ 
+.block{
+    min-width: 300px;
+    max-width: 350px;
+    height: 280px;
+    margin: auto;
+    margin-top: 5%;
+    background-color: rgb(99, 99, 99);
+    border-radius: 10px;
+    text-align: center;
+    font-family: 'Jura', sans-serif;
+    font-size: 20px;
+    opacity: 0.75;
+    font-weight: bold;
+    padding: 5px;
+}
+
+button{
+    width: 250px;
+    height: 35px;
+    border-radius: 10px;
+    background-color: rgb(87, 104, 255);
+    margin-top: 30px;
+}
+ </style>
+
 </html>
