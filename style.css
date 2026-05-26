@@ -1141,3 +1141,27 @@ body.light-mode .faq-container::-webkit-scrollbar-thumb {
 .light-mode #user-news-close-btn:hover {
     background-color: #222222 !important;
 }
+
+/* Курсор лупы при наведении на фото в новости */
+#user-news-body .news-modal-img {
+    cursor: zoom-in;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Эффект при наведении (опционально, для красоты) */
+#user-news-body .news-modal-img:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+}
+
+/* Класс для добавленных превью в админке, чтобы показать, что их можно удалить */
+.photo-preview-news {
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.photo-preview-news:hover {
+    opacity: 0.7;
+    transform: scale(0.95);
+    border-color: #ef4444; /* Красная рамка при наведении */
+}
