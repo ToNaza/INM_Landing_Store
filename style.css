@@ -1048,24 +1048,96 @@ body.light-mode .faq-container::-webkit-scrollbar-thumb {
 
 
 
+/* ==========================================================================
+   СТИЛІ ДЛЯ МОДАЛЬНИХ ВІКОН НОВИН
+   ========================================================================== */
+
+/* Сетка превью картинок в админке новини */
+#news-photo-preview-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
 .photo-preview-news {
     width: 60px;
     height: 60px;
     object-fit: cover;
-    border-radius: 5px;
-    border: 1px solid #737373;
+    border-radius: 10px;
+    border: 2px solid #000;
 }
+
+/* Стили полей ввода для админки новостей (по аналогии с товарами) */
+#admin-news-form textarea {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background-color: #a3a3a3;
+    color: #000;
+    outline: none;
+    box-sizing: border-box;
+    font-family: inherit;
+    resize: none;
+}
+
+#admin-news-form textarea::placeholder {
+    color: #444;
+}
+
+/* Контент модалки пользователя */
 .news-modal-img {
     width: 100%;
-    max-height: 250px;
+    max-height: 280px;
     object-fit: cover;
     border-radius: 10px;
     display: block;
 }
+
 .news-modal-text {
     font-size: 16px;
     line-height: 1.5;
     text-align: left;
     white-space: pre-wrap;
     color: #f5f5f5;
+    font-family: 'Jura', sans-serif;
+}
+
+#user-news-body {
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+/* Настройки скроллбара для длинных новостей */
+#user-news-body::-webkit-scrollbar {
+    width: 6px;
+}
+#user-news-body::-webkit-scrollbar-thumb {
+    background-color: #555;
+    border-radius: 3px;
+}
+
+/* Стили для кнопки закрытия при наведении */
+#user-news-close-btn:hover {
+    background-color: #e5e5e5;
+}
+
+/* Адаптация под СВІТЛУ тему */
+.light-mode #modal-user-news .add-item-modal {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+}
+
+.light-mode .news-modal-text {
+    color: #000000 !important;
+}
+
+.light-mode #user-news-close-btn {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+}
+
+.light-mode #user-news-close-btn:hover {
+    background-color: #222222 !important;
 }

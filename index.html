@@ -284,52 +284,56 @@
 
 
 
-<div id="modal-admin-news" class="backdrop">
-    <div class="modal-content" style="background: #e5e5e5; color: #000; max-width: 450px; width: 90%; padding: 20px; border-radius: 15px;">
-        <h2 style="margin-top: 0; color: #000;">Управління новиною</h2>
+<div id="modal-admin-news" class="modal-backdrop">
+    <div class="add-item-modal">
+        <div class="side-modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="color: #000; margin: 0;">Управління новиною</h3>
+            <button type="button" class="close-btn" id="news-btn-close-x" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #000;">&times;</button>
+        </div>
+
         <form id="admin-news-form">
             <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                 <input type="checkbox" id="news-active" style="width: 20px; height: 20px; cursor: pointer;">
-                <label for="news-active" style="font-weight: bold; cursor: pointer; user-select: none;">Новина активна</label>
+                <label for="news-active" style="font-weight: bold; cursor: pointer; user-select: none; color: #000;">Новина активна</label>
             </div>
 
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; font-weight: bold; margin-bottom: 5px;">Фотографії новини:</label>
-                <div id="news-photo-preview-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
-                    <label id="add-news-photo-btn" for="news-photo-input" style="width: 60px; height: 60px; background: #a3a3a3; display: flex; align-items: center; justify-content: center; border-radius: 5px; cursor: pointer; font-size: 24px; color: #fff;">+</label>
+            <div class="add-photo-section" style="margin-bottom: 15px;">
+                <div id="news-photo-preview-container" class="photo-preview-container">
+                    <label id="add-news-photo-btn" class="add-photo-btn" for="news-photo-input">
+                        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                    </label>
+                    <input type="file" id="news-photo-input" multiple accept="image/*" hidden>
                 </div>
-                <input type="file" id="news-photo-input" multiple accept="image/*" style="display: none;">
             </div>
 
             <div style="margin-bottom: 15px;">
-                <label for="news-text" style="display: block; font-weight: bold; margin-bottom: 5px;">Текст новини:</label>
-                <textarea id="news-text" rows="5" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #a3a3a3; box-sizing: border-box; resize: vertical;" placeholder="Введіть текст новини..."></textarea>
+                <textarea id="news-text" rows="5" placeholder="Введіть текст новини..." required></textarea>
             </div>
 
             <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
                 <input type="checkbox" id="news-text-first" style="width: 18px; height: 18px; cursor: pointer;">
-                <label for="news-text-first" style="cursor: pointer; user-select: none;">Текст над фото</label>
+                <label for="news-text-first" style="cursor: pointer; user-select: none; color: #000;">Текст над фото</label>
             </div>
 
-            <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                <button type="button" id="news-btn-cancel" style="padding: 10px 20px; background: #a3a3a3; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Скасувати</button>
-                <button type="submit" id="news-btn-save" style="padding: 10px 20px; background: #22c55e; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Зберегти</button>
+            <div class="add-item-buttons">
+                <button type="button" id="news-btn-cancel">Скасувати</button>
+                <button type="submit" id="news-btn-save" style="background-color: #3b82f6; color: #fff;">Зберегти</button>
             </div>
         </form>
     </div>
 </div>
 
-<div id="modal-user-news" class="backdrop" style="z-index: 25000;">
-    <div class="modal-content" style="background: #1f1f1f; color: #fff; max-width: 450px; width: 90%; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center;">
-        <div id="user-news-body" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px;">
+<div id="modal-user-news" class="modal-backdrop" style="z-index: 25000;">
+    <div class="add-item-modal" style="background-color: #1f1f1f; color: #fff; max-width: 450px;">
+        <div id="user-news-body" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px;">
             </div>
         
         <div style="border-top: 1px solid #333; padding-top: 15px;">
             <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 15px;">
                 <input type="checkbox" id="dont-show-news-checkbox" style="width: 18px; height: 18px; cursor: pointer;">
-                <label for="dont-show-news-checkbox" style="cursor: pointer; user-select: none; color: #a3a3a3; font-size: 14px;">більше не показувати</label>
+                <label for="dont-show-news-checkbox" style="cursor: pointer; user-select: none; color: #a3a3a3; font-size: 14px; font-family: 'Jura', sans-serif;">більше не показувати</label>
             </div>
-            <button id="user-news-close-btn" style="width: 100%; padding: 12px; background: #fff; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;">Сховати новину</button>
+            <button id="user-news-close-btn" style="width: 100%; padding: 12px; background: #fff; color: #000; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; font-family: 'Jura', sans-serif; transition: background 0.2s;">Сховати новину</button>
         </div>
     </div>
 </div>
