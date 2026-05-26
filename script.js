@@ -1,545 +1,3 @@
-/* ==========================================================================
-   ЛОГІКА УПРАВЛІННЯ ТА ВІДОБРАЖЕННЯ НОВИН (FIRESTORE & SUPABASE)
-   ========================================================================== */
-
-let localExistingNewsImages = []; // Для збереження посилань на вже існуючі картинки новини
-let currentNewsTimestamp = null;  // Тимчасова мітка поточної активної новини
-
-function handleNewsPhotoSelect(event) {
-    const files = Array.from(event.target.files);
-    // Проверка лимита: текущие из БД + уже выбранные новые + те, что пытаемся добавить сейчас
-    if (uploadedNewsFiles.length + localExistingNewsImages.length + files.length > 5) {
-        alert("Можна завантажити не більше 5 зображень для новини");
-        // Очищаем инпут, чтобы можно было выбрать заново
-        event.target.value = "";
-        return;
-    }
-
-    files.forEach(file => {
-        if (file.type.startsWith('image/')) {
-            uploadedNewsFiles.push(file);
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.classList.add('photo-preview-news');
-                // Добавляем data-атрибут, чтобы найти этот файл в массивеuploadedNewsFiles при удалении
-                img.dataset.filename = file.name; 
-                
-                // Функция удаления НОВОГО (еще не загруженного) фото при клике
-                img.onclick = function() {
-                    // Удаляем из массива файлов
-                    uploadedNewsFiles = uploadedNewsFiles.filter(f => f.name !== img.dataset.filename);
-                    // Удаляем превью из DOM
-                    img.remove();
-                };
-
-                const container = document.getElementById('news-photo-preview-container');
-                const btn = document.getElementById('add-news-photo-btn');
-                if (container && btn) {
-                    container.insertBefore(img, btn);
-                }
-            }
-            reader.readAsDataURL(file);
-        }
-    });
-    // Очищаем инпут, чтобы можно было выбрать тот же файл повторно, если его удалили
-    event.target.value = "";
-}
-
-async function loadCurrentNewsInAdmin() {
-    try {
-        const newsDoc = await getDoc(doc(db, "news", "current"));
-        if (newsDoc.exists()) {
-            const data = newsDoc.data();
-            document.getElementById('news-active').checked = data.active || false;
-            document.getElementById('news-text').value = data.text || "";
-            document.getElementById('news-text-first').checked = data.textFirst || false;
-            
-            localExistingNewsImages = data.images || [];
-            
-            // Очищуємо старі прев'ю перед кнопкою додавання
-            document.querySelectorAll('.photo-preview-news').forEach(p => p.remove());
-            
-            const container = document.getElementById('news-photo-preview-container');
-            const btn = document.getElementById('add-news-photo-btn');
-            
-            localExistingNewsImages.forEach(url => {
-                const img = document.createElement('img');
-                img.src = url;
-                img.classList.add('photo-preview-news');
-                
-                // Функция удаления СТАРОГО (уже существующего в БД) фото при клике
-                img.onclick = function() {
-                    if (confirm("Видалити це фото з новини? (Зміни наберуть сили після збереження)")) {
-                        // Удаляем URL из локального массива существующих картинок
-                        localExistingNewsImages = localExistingNewsImages.filter(u => u !== url);
-                        // Удаляем превью из DOM
-                        img.remove();
-                    }
-                };
-
-                if (container && btn) container.insertBefore(img, btn);
-            });
-        }
-    } catch (e) {
-        console.error("Помилка завантаження поточної новини в адмінку:", e);
-    }
-}
-
-async function saveNewsHandler(e) {
-    e.preventDefault();
-    if (!currentUser || currentUser.uid !== ADMIN_UID) return;
-
-    const saveBtn = document.getElementById('news-btn-save');
-    if (!saveBtn) return;
-
-    saveBtn.disabled = true;
-    saveBtn.textContent = "Завантаження...";
-
-    try {
-        // Начинаем с массива картинок, которые админ ОСТАВИЛ (не удалил кликом)
-        const imageUrls = [...localExistingNewsImages];
-
-        // Загружаем только новые выбранные файлы
-        for (const file of uploadedNewsFiles) {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `news_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-
-            const { data, error } = await supabase.storage
-                .from('product-images')
-                .upload(fileName, file);
-
-            if (error) throw error;
-
-            const { data: publicUrlData } = supabase.storage
-                .from('product-images')
-                .getPublicUrl(fileName);
-
-            imageUrls.push(publicUrlData.publicUrl);
-        }
-
-        const newsData = {
-            active: document.getElementById('news-active').checked,
-            text: document.getElementById('news-text').value,
-            textFirst: document.getElementById('news-text-first').checked,
-            images: imageUrls,
-            updatedAt: new Date().toISOString()
-        };
-
-        await setDoc(doc(db, "news", "current"), newsData);
-        closeAdminNewsModal();
-        alert("Новину успішно збережено!");
-    } catch (err) {
-        console.error(err);
-        alert(`Не вдалося зберегти новину: ${err.message || err.code || err}`);
-    } finally {
-        saveBtn.disabled = false;
-        saveBtn.textContent = "Зберегти";
-    }
-}
-
-// Реалтайм слухач для показу новини звичайним користувачам
-onSnapshot(doc(db, "news", "current"), (docSnap) => {
-    if (!docSnap.exists()) return;
-    const newsData = docSnap.data();
-    
-    if (!newsData.active) return;
-
-    currentNewsTimestamp = newsData.updatedAt || "";
-
-    if (localStorage.getItem('muted_news_timestamp') === currentNewsTimestamp) return;
-
-    // Якщо це адмін — не показуємо йому модалку користувача автоматично
-    if (currentUser && currentUser.uid === ADMIN_UID) return;
-
-    const userNewsBody = document.getElementById('user-news-body');
-    if (!userNewsBody) return;
-
-    userNewsBody.innerHTML = '';
-
-    const dontShowCheckbox = document.getElementById('dont-show-news-checkbox');
-    if (dontShowCheckbox) dontShowCheckbox.checked = false;
-
-    // Функция открытия фото в лайтбоксе (увеличение)
-    const openLightbox = (imgSrc) => {
-        const lightbox = document.createElement('div');
-        // Используем встроенные стили, чтобы не править CSS
-        lightbox.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:30000; display:flex; align-items:center; justify-content:center; cursor:zoom-out; opacity:0; transition:opacity 0.3s ease;';
-        
-        lightbox.innerHTML = `
-            <img src="${imgSrc}" style="max-width:95%; max-height:95%; object-fit:contain; border-radius:10px; box-shadow:0 10px 40px rgba(0,0,0,0.8);">
-            <div style="position:absolute; top:20px; right:20px; color:#fff; font-size:35px; font-family:serif; cursor:pointer;">&times;</div>
-        `;
-
-        document.body.appendChild(lightbox);
-        
-        // Плавное появление
-        setTimeout(() => lightbox.style.opacity = '1', 10);
-
-        // Закрытие при клике в любое место
-        lightbox.onclick = () => {
-            lightbox.style.opacity = '0';
-            setTimeout(() => lightbox.remove(), 300);
-        };
-    };
-
-    const textHtml = `<div class="news-modal-text">${newsData.text}```javascript
-import { initializeApp } from "[https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js)";
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "[https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js)";
-import { getFirestore, collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, setDoc, getDoc, getDocs } from "[https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js)";
-import { createClient } from "[https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm](https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm)";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyCqYzKEVWops5qTt1Iw_qvm6b42VhuFgaA",
-    authDomain: "inmlandingshop.firebaseapp.com",
-    projectId: "inmlandingshop",
-    storageBucket: "inmlandingshop.firebasestorage.app",
-    messagingSenderId: "56300741868",
-    appId: "1:56300741868:web:e5a90e942a81d7424031c9"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const provider = new GoogleAuthProvider();
-
-const SUPABASE_URL = "[https://rvpfmnrvcbtcbxonczcv.supabase.co](https://rvpfmnrvcbtcbxonczcv.supabase.co)"; 
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2cGZtbnJ2Y2J0Y2J4b25jemN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwOTc4NTIsImV4cCI6MjA5NDY3Mzg1Mn0.BPD8k6VifoylRQO-afoRXfdDsM0rPE36LASckwNiCJ0"; 
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-const TG_BOT_TOKEN = '8810566355:AAGya-exuy_8cDHY8YzDiZLH0refamQcwTQ';
-const TG_CHAT_ID = '-5289386929'; 
-const ADMIN_UID = "ciDwSBtZ7OMo8Cxd1jfcSZQVpa63"; 
-
-let currentUser = null;
-let wishesList = [];
-let checkoutItems = [];
-let editingProductId = null; 
-let modalCarouselInterval = null;
-let newsCarouselInterval = null;
-
-let allProducts = [];
-let savedWishesIds = [];
-let savedCartIds = [];
-let localExistingNewsImages = []; 
-
-let isOneClickCheckout = false;
-let oneClickItem = null;
-
-// Глобальні змінні для новин
-let uploadedNewsFiles = [];
-let currentNewsTimestamp = null; 
-
-const modalBackdrop = document.getElementById('modal-backdrop');
-const modalWishes = document.getElementById('modal-wishes');
-const modalCart = document.getElementById('modal-cart');
-const modalSettings = document.getElementById('modal-settings');
-const modalInfo = document.getElementById('modal-info');
-const modalAdminUsers = document.getElementById('modal-admin-users');
-const modalAdminNews = document.getElementById('modal-admin-news');
-const modalUserNews = document.getElementById('modal-user-news');
-const checkoutBackdrop = document.getElementById('checkout-backdrop');
-const addItemBackdrop = document.getElementById('add-item-backdrop');
-
-const infoBtn = document.getElementById('info');
-const userNameEl = document.getElementById('user-name');
-const userAvatarImg = document.querySelector('.user-avatar img');
-const productsContainer = document.querySelector('.list');
-
-function loadSavedUserData() {
-    if (localStorage.getItem('checkout_name')) document.getElementById('checkout-name').value = localStorage.getItem('checkout_name');
-    if (localStorage.getItem('checkout_phone')) document.getElementById('checkout-phone').value = localStorage.getItem('checkout_phone');
-    if (localStorage.getItem('checkout_email')) document.getElementById('checkout-email').value = localStorage.getItem('checkout_email');
-    if (localStorage.getItem('checkout_city')) document.getElementById('checkout-city').value = localStorage.getItem('checkout_city');
-    if (localStorage.getItem('checkout_branch')) document.getElementById('checkout-branch').value = localStorage.getItem('checkout_branch');
-}
-loadSavedUserData();
-
-function syncListsWithAllProducts() {
-    if (currentUser) {
-        wishesList = allProducts.filter(p => savedWishesIds.includes(p.id));
-        checkoutItems = allProducts.filter(p => savedCartIds.includes(p.id));
-    } else {
-        wishesList = wishesList.map(item => allProducts.find(p => p.id === item.id) || item);
-        checkoutItems = checkoutItems.map(item => allProducts.find(p => p.id === item.id) || item);
-    }
-    updateListsUI();
-}
-
-async function saveUserDataToFirebase() {
-    if (!currentUser) return;
-    try {
-        savedWishesIds = wishesList.map(item => item.id);
-        savedCartIds = checkoutItems.map(item => item.id);
-        await updateDoc(doc(db, "users", currentUser.uid), {
-            wishes: savedWishesIds,
-            cart: savedCartIds
-        });
-    } catch (e) {
-        console.error("Помилка збереження даних користувача:", e);
-    }
-}
-
-document.querySelector('.user-row').addEventListener('click', () => {
-    if (!currentUser) {
-        signInWithPopup(auth, provider).catch(err => console.error(err));
-    } else {
-        if (confirm("Вийти з акаунту?")) signOut(auth);
-    }
-});
-
-onAuthStateChanged(auth, async (user) => {
-    currentUser = user;
-    if (user) {
-        if (userNameEl) userNameEl.textContent = user.displayName || user.email;
-        if (userAvatarImg) userAvatarImg.src = user.photoURL || "./media/profile.svg";
-        
-        try {
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (userDoc.exists()) {
-                const data = userDoc.data();
-                
-                if (data.banned) {
-                    window.location.href = 'bun.html';
-                    return;
-                }
-
-                if (!data.email) {
-                    await updateDoc(doc(db, "users", user.uid), { email: user.email });
-                }
-
-                savedWishesIds = data.wishes || [];
-                savedCartIds = data.cart || [];
-            } else {
-                await setDoc(doc(db, "users", user.uid), {
-                    email: user.email,
-                    banned: false,
-                    wishes: [],
-                    cart: []
-                });
-                savedWishesIds = [];
-                savedCartIds = [];
-            }
-            syncListsWithAllProducts();
-        } catch (e) {
-            console.error("Помилка завантаження даних користувача:", e);
-        }
-    } else {
-        if (userNameEl) userNameEl.textContent = "Увійти";
-        if (userAvatarImg) userAvatarImg.src = "./media/profile.svg";
-        savedWishesIds = [];
-        savedCartIds = [];
-        wishesList = [];
-        checkoutItems = [];
-        updateListsUI();
-    }
-});
-
-document.addEventListener('keydown', (event) => {
-    if (event.shiftKey && event.code === 'KeyA') {
-        event.preventDefault();
-        if (currentUser && currentUser.uid === ADMIN_UID) {
-            editingProductId = null; 
-            document.getElementById('add-btn-create').textContent = "Створити";
-            addItemBackdrop.classList.add('active');
-        } else {
-            alert("Доступ обмежено. Необхідні права адміністратора.");
-        }
-    }
-
-    if (event.shiftKey && event.code === 'KeyP') {
-        event.preventDefault();
-        if (currentUser && currentUser.uid === ADMIN_UID) {
-            openAdminUsersModal();
-        } else {
-            alert("Доступ обмежено. Необхідні права адміністратора.");
-        }
-    }
-
-    // Комбінація Shift + N / Т для управління новинами
-    if (event.shiftKey && (event.code === 'KeyN' || event.key === 'N' || event.key === 'н' || event.key === 'Н')) { 
-        event.preventDefault();
-        if (currentUser && currentUser.uid === ADMIN_UID) {
-            openAdminNewsModal();
-        } else {
-            alert("Доступ обмежено. Необхідні права адміністратора.");
-        }
-    }
-});
-
-async function openAdminUsersModal() {
-    closeWishes();
-    closeCart();
-    closeSettings();
-    closeInfo();
-    closeAdminNewsModal();
-    
-    if (modalAdminUsers) modalAdminUsers.classList.add('active');
-
-    const container = document.getElementById('admin-users-list');
-    if (container) container.innerHTML = '<span style="color:#000;">Завантаження...</span>';
-
-    try {
-        const usersSnap = await getDocs(collection(db, "users"));
-        if (!container) return;
-        container.innerHTML = '';
-
-        usersSnap.forEach(docSnap => {
-            const userData = docSnap.data();
-            const uid = docSnap.id;
-            
-            if (uid === ADMIN_UID) return;
-
-            const email = userData.email || 'Немає пошти';
-            const isBanned = userData.banned || false;
-
-            const userRow = document.createElement('div');
-            userRow.className = 'admin-user-row';
-            userRow.innerHTML = `
-                <span class="admin-user-email">${email}</span>
-                <button class="admin-ban-btn ${isBanned ? 'banned' : ''}">${isBanned ? 'Розбанити' : 'Забанити'}</button>
-            `;
-
-            userRow.querySelector('.admin-ban-btn').onclick = async () => {
-                const newBanState = !isBanned;
-                await updateDoc(doc(db, "users", uid), { banned: newBanState });
-                openAdminUsersModal(); 
-            };
-
-            container.appendChild(userRow);
-        });
-
-        if (container.innerHTML === '') {
-            container.innerHTML = '<span style="color:#444;">Користувачів не знайдено</span>';
-        }
-    } catch (e) {
-        console.error(e);
-        if (container) container.innerHTML = '<span style="color:#ef4444;">Помилка завантаження</span>';
-    }
-}
-
-function closeAdminUsers() {
-    if (modalAdminUsers) modalAdminUsers.classList.remove('active');
-}
-
-function closeWishes() {
-    if (modalWishes) modalWishes.classList.remove('active');
-    if (document.querySelector('#main-wishes-btn img')) {
-        document.querySelector('#main-wishes-btn img').src = './media/love_off.svg';
-    }
-}
-
-function closeCart() {
-    if (modalCart) modalCart.classList.remove('active');
-    if (document.querySelector('#main-cart-btn img')) {
-        document.querySelector('#main-cart-btn img').src = './media/basket_off.svg';
-    }
-}
-
-function closeSettings() {
-    if (modalSettings) modalSettings.classList.remove('active');
-}
-
-function closeInfo() {
-    if (modalInfo) modalInfo.classList.remove('active');
-}
-
-function openAdminNewsModal() {
-    closeWishes();
-    closeCart();
-    closeSettings();
-    closeInfo();
-    closeAdminUsers();
-    if (modalAdminNews) modalAdminNews.classList.add('active');
-    loadCurrentNewsInAdmin();
-}
-
-function closeAdminNewsModal() {
-    if (modalAdminNews) modalAdminNews.classList.remove('active');
-    const form = document.getElementById('admin-news-form');
-    if (form) form.reset();
-    uploadedNewsFiles = [];
-    document.querySelectorAll('.photo-preview-news').forEach(p => p.remove());
-}
-
-function closeUserNewsModal() {
-    if (modalUserNews) modalUserNews.classList.remove('active');
-    if (newsCarouselInterval) clearInterval(newsCarouselInterval);
-}
-
-function openWishes() {
-    closeCart(); 
-    closeSettings(); 
-    closeInfo();
-    closeAdminUsers();
-    closeAdminNewsModal();
-    if (modalWishes) modalWishes.classList.add('active');
-    if (document.querySelector('#main-wishes-btn img')) {
-        document.querySelector('#main-wishes-btn img').src = './media/love_on.svg';
-    }
-}
-
-function openCart() {
-    closeWishes();
-    closeSettings();
-    closeInfo();
-    closeAdminUsers();
-    closeAdminNewsModal();
-    if (modalCart) modalCart.classList.add('active');
-    if (document.querySelector('#main-cart-btn img')) {
-        document.querySelector('#main-cart-btn img').src = './media/basket_on.svg';
-    }
-}
-
-function openSettings() {
-    closeWishes();
-    closeCart();
-    closeInfo();
-    closeAdminUsers();
-    closeAdminNewsModal();
-    if (modalSettings) modalSettings.classList.add('active');
-}
-
-if (infoBtn) {
-    infoBtn.addEventListener('click', () => {
-        closeWishes();
-        closeCart();
-        closeSettings();
-        closeAdminUsers();
-        closeAdminNewsModal();
-        if (modalInfo) modalInfo.classList.add('active');
-    });
-}
-
-document.querySelectorAll('#main-wishes-btn, #modal-cart-wishes-btn, #modal-wishes-close-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        modalWishes.classList.contains('active') ? closeWishes() : openWishes();
-    });
-});
-
-document.querySelectorAll('#main-cart-btn, #modal-wishes-cart-btn, #modal-cart-close-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        modalCart.classList.contains('active') ? closeCart() : openCart();
-    });
-});
-
-document.querySelectorAll('#main-settings-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        modalSettings.classList.contains('active') ? closeSettings() : openSettings();
-    });
-});
-
-window.addEventListener('click', (e) => {
-    if (e.target === modalSettings) closeSettings();
-    if (e.target === modalWishes) closeWishes();
-    if (e.target === modalCart) closeCart();
-    if (e.target```javascript
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, setDoc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -578,14 +36,12 @@ let newsCarouselInterval = null;
 let allProducts = [];
 let savedWishesIds = [];
 let savedCartIds = [];
-let localExistingNewsImages = []; 
 
 let isOneClickCheckout = false;
 let oneClickItem = null;
 
 // Глобальні змінні для новин
 let uploadedNewsFiles = [];
-let currentNewsTimestamp = null; 
 
 const modalBackdrop = document.getElementById('modal-backdrop');
 const modalWishes = document.getElementById('modal-wishes');
@@ -851,7 +307,6 @@ function openCart() {
 function openSettings() {
     closeWishes();
     closeCart();
-    closeSettings();
     closeInfo();
     closeAdminUsers();
     closeAdminNewsModal();
@@ -1353,13 +808,13 @@ if (backBtn) {
    ЛОГІКА УПРАВЛІННЯ ТА ВІДОБРАЖЕННЯ НОВИН (FIRESTORE & SUPABASE)
    ========================================================================== */
 
+let localExistingNewsImages = []; // Для збереження посилань на вже існуючі картинки новини
 let currentNewsTimestamp = null;  // Тимчасова мітка поточної активної новини
 
 function handleNewsPhotoSelect(event) {
     const files = Array.from(event.target.files);
     if (uploadedNewsFiles.length + localExistingNewsImages.length + files.length > 5) {
         alert("Можна завантажити не більше 5 зображень для новини");
-        // Очищаем инпут, чтобы можно было выбрать заново
         event.target.value = "";
         return;
     }
@@ -1373,27 +828,21 @@ function handleNewsPhotoSelect(event) {
                 const img = document.createElement('img');
                 img.src = e.target.result;
                 img.classList.add('photo-preview-news');
-                // Добавляем data-атрибут, чтобы найти этот файл в массивеuploadedNewsFiles при удалении
                 img.dataset.filename = file.name; 
                 
-                // Функция удаления НОВОГО (еще не загруженного) фото при клике
+                // 2. Видалення НОВОГО фото при кліку в адмінці
                 img.onclick = function() {
-                    // Удаляем из массива файлов
                     uploadedNewsFiles = uploadedNewsFiles.filter(f => f.name !== img.dataset.filename);
-                    // Удаляем превью из DOM
                     img.remove();
                 };
 
                 const container = document.getElementById('news-photo-preview-container');
                 const btn = document.getElementById('add-news-photo-btn');
-                if (container && btn) {
-                    container.insertBefore(img, btn);
-                }
+                if (container && btn) container.insertBefore(img, btn);
             }
             reader.readAsDataURL(file);
         }
     });
-    // Очищаем инпут, чтобы можно было выбрать тот же файл повторно, если его удалили
     event.target.value = "";
 }
 
@@ -1407,8 +856,6 @@ async function loadCurrentNewsInAdmin() {
             document.getElementById('news-text-first').checked = data.textFirst || false;
             
             localExistingNewsImages = data.images || [];
-            
-            // Очищуємо старі прев'ю перед кнопкою додавання
             document.querySelectorAll('.photo-preview-news').forEach(p => p.remove());
             
             const container = document.getElementById('news-photo-preview-container');
@@ -1419,12 +866,10 @@ async function loadCurrentNewsInAdmin() {
                 img.src = url;
                 img.classList.add('photo-preview-news');
                 
-                // Функция удаления СТАРОГО (уже существующего в БД) фото при клике
+                // 2. Видалення СТАРОГО фото при кліку в адмінці
                 img.onclick = function() {
                     if (confirm("Видалити це фото з новини? (Зміни наберуть сили після збереження)")) {
-                        // Удаляем URL из локального массива существующих картинок
                         localExistingNewsImages = localExistingNewsImages.filter(u => u !== url);
-                        // Удаляем превью из DOM
                         img.remove();
                     }
                 };
@@ -1448,10 +893,8 @@ async function saveNewsHandler(e) {
     saveBtn.textContent = "Завантаження...";
 
     try {
-        // Начинаем с массива картинок, которые админ ОСТАВИЛ (не удалил кликом)
         const imageUrls = [...localExistingNewsImages];
 
-        // Загружаем только новые выбранные файлы
         for (const file of uploadedNewsFiles) {
             const fileExt = file.name.split('.').pop();
             const fileName = `news_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
@@ -1474,12 +917,12 @@ async function saveNewsHandler(e) {
             text: document.getElementById('news-text').value,
             textFirst: document.getElementById('news-text-first').checked,
             images: imageUrls,
-            updatedAt: new Date().toISOString() // Створює унікальний таймстамп при кожному збереженні
+            updatedAt: new Date().toISOString()
         };
 
         await setDoc(doc(db, "news", "current"), newsData);
         closeAdminNewsModal();
-        alert("Новину успішно збережено!");
+        alert("Новину успешно збережено!");
     } catch (err) {
         console.error(err);
         alert(`Не вдалося зберегти новину: ${err.message || err.code || err}`);
@@ -1489,7 +932,6 @@ async function saveNewsHandler(e) {
     }
 }
 
-// Реалтайм слухач для показу новини звичайним користувачам
 onSnapshot(doc(db, "news", "current"), (docSnap) => {
     if (!docSnap.exists()) return;
     const newsData = docSnap.data();
@@ -1497,10 +939,7 @@ onSnapshot(doc(db, "news", "current"), (docSnap) => {
     if (!newsData.active) return;
 
     currentNewsTimestamp = newsData.updatedAt || "";
-
     if (localStorage.getItem('muted_news_timestamp') === currentNewsTimestamp) return;
-
-    // Якщо це адмін — не показуємо йому модалку користувача автоматично
     if (currentUser && currentUser.uid === ADMIN_UID) return;
 
     const userNewsBody = document.getElementById('user-news-body');
@@ -1508,55 +947,42 @@ onSnapshot(doc(db, "news", "current"), (docSnap) => {
 
     userNewsBody.innerHTML = '';
 
-    // Скидаємо візуальний стан чекбоксу, оскільки новина оновилась/нова
     const dontShowCheckbox = document.getElementById('dont-show-news-checkbox');
     if (dontShowCheckbox) dontShowCheckbox.checked = false;
 
-    // Функция открытия фото в лайтбоксе (увеличение)
+    // 1. Функція для збільшення фото (Лайтбокс)
     const openLightbox = (imgSrc) => {
         const lightbox = document.createElement('div');
-        // Используем встроенные стили, чтобы не править CSS
-        lightbox.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:30000; display:flex; align-items:center; justify-content:center; cursor:zoom-out; opacity:0; transition:opacity 0.3s ease;';
-        
-        lightbox.innerHTML = `
-            <img src="${imgSrc}" style="max-width:95%; max-height:95%; object-fit:contain; border-radius:10px; box-shadow:0 10px 40px rgba(0,0,0,0.8);">
-            <div style="position:absolute; top:20px; right:20px; color:#fff; font-size:35px; font-family:serif; cursor:pointer;">&times;</div>
-        `;
-
+        lightbox.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:30000; display:flex; align-items:center; justify-content:center; cursor:zoom-out; opacity:0; transition:opacity 0.2s ease;';
+        lightbox.innerHTML = `<img src="${imgSrc}" style="max-width:95%; max-height:95%; object-fit:contain; border-radius:10px; box-shadow:0 10px 40px rgba(0,0,0,0.8);">`;
         document.body.appendChild(lightbox);
-        
-        // Плавное появление
         setTimeout(() => lightbox.style.opacity = '1', 10);
-
-        // Закрытие при клике в любое место
         lightbox.onclick = () => {
             lightbox.style.opacity = '0';
-            setTimeout(() => lightbox.remove(), 300);
+            setTimeout(() => lightbox.remove(), 200);
         };
     };
 
     const textHtml = `<div class="news-modal-text">${newsData.text}</div>`;
     
+    const createImgEl = (src) => {
+        const img = document.createElement('img');
+        img.className = 'news-modal-img';
+        img.src = src;
+        img.alt = "Новина";
+        img.style.cursor = "zoom-in";
+        img.onclick = () => openLightbox(img.src);
+        return img;
+    };
+
     if (newsData.textFirst) {
         userNewsBody.innerHTML = textHtml;
         if (newsData.images && newsData.images.length > 0) {
-            const imgEl = document.createElement('img');
-            imgEl.className = 'news-modal-img';
-            imgEl.src = newsData.images[0];
-            imgEl.alt = "Новина";
-            // Добавляем клик для увеличения
-            imgEl.onclick = () => openLightbox(imgEl.src);
-            userNewsBody.appendChild(imgEl);
+            userNewsBody.appendChild(createImgEl(newsData.images[0]));
         }
     } else {
         if (newsData.images && newsData.images.length > 0) {
-            const imgEl = document.createElement('img');
-            imgEl.className = 'news-modal-img';
-            imgEl.src = newsData.images[0];
-            imgEl.alt = "Новина";
-            // Добавляем клик для увеличения
-            imgEl.onclick = () => openLightbox(imgEl.src);
-            userNewsBody.appendChild(imgEl);
+            userNewsBody.appendChild(createImgEl(newsData.images[0]));
         }
         userNewsBody.insertAdjacentHTML('beforeend', textHtml);
     }
@@ -1576,7 +1002,7 @@ onSnapshot(doc(db, "news", "current"), (docSnap) => {
     if (modalUserNews) modalUserNews.classList.add('active');
 });
 
-// Ініціалізація безпечних подій для вікон новин
+// Ініціалізація подій
 const newsCloseX = document.getElementById('news-btn-close-x');
 if (newsCloseX) newsCloseX.addEventListener('click', closeAdminNewsModal);
 
@@ -1596,7 +1022,6 @@ const dontShowCheckbox = document.getElementById('dont-show-news-checkbox');
 if (dontShowCheckbox) {
     dontShowCheckbox.addEventListener('change', (e) => {
         if (e.target.checked && currentNewsTimestamp) {
-            // Записуємо унікальну мітку саме цієї версії новини
             localStorage.setItem('muted_news_timestamp', currentNewsTimestamp);
         } else {
             localStorage.removeItem('muted_news_timestamp');
