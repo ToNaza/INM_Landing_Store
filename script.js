@@ -36,11 +36,12 @@ let newsCarouselInterval = null;
 let allProducts = [];
 let savedWishesIds = [];
 let savedCartIds = [];
-let currentNewsData = null; 
-let existingNewsImages = []; 
 
 let isOneClickCheckout = false;
 let oneClickItem = null;
+
+// Глобальні змінні для новин
+let uploadedNewsFiles = [];
 
 const modalBackdrop = document.getElementById('modal-backdrop');
 const modalWishes = document.getElementById('modal-wishes');
@@ -168,7 +169,8 @@ document.addEventListener('keydown', (event) => {
         }
     }
 
-    if (event.shiftKey && event.code === 'KeyN') { 
+    // Комбінація Shift + N / Т для управління новинами
+    if (event.shiftKey && (event.code === 'KeyN' || event.key === 'N' || event.key === 'н' || event.key === 'Н')) { 
         event.preventDefault();
         if (currentUser && currentUser.uid === ADMIN_UID) {
             openAdminNewsModal();
@@ -233,181 +235,6 @@ function closeAdminUsers() {
     if (modalAdminUsers) modalAdminUsers.classList.remove('active');
 }
 
-async function openAdminNewsModal() {
-    closeWishes();
-    closeCart();
-    closeSettings();
-    closeInfo();
-    closeAdminUsers();
-
-    if (modalAdminNews) modalAdminNews.classList.add('active');
-    
-    document.querySelectorAll('.photo-preview-news').forEach(p => p.remove());
-    uploadedNewsFiles = [];
-    document.getElementById('add-news-photo-btn').style.display = 'flex';
-
-    try {
-        const newsDoc = await getDoc(doc(db, "settings", "news"));
-        if (newsDoc.exists()) {
-            const data = newsDoc.data();
-            document.getElementById('news-active').checked = data.active || false;
-            document.getElementById('news-text').value = data.text || '';
-            document.getElementById('news-text-first').checked = data.textFirst || false;
-            existingNewsImages = data.images || [];
-
-            existingNewsImages.forEach(url => {
-                const img = document.createElement('img');
-                img.src = url;
-                img.className = 'photo-preview-news';
-                document.getElementById('news-photo-preview-container').insertBefore(img, document.getElementById('add-news-photo-btn'));
-            });
-        }
-    } catch (e) {
-        console.error("Помилка завантаження конфігу новин:", e);
-    }
-}
-
-function closeAdminNewsModal() {
-    if (modalAdminNews) modalAdminNews.classList.remove('active');
-    const form = document.getElementById('admin-news-form');
-    if (form) form.reset();
-    uploadedNewsFiles = [];
-    document.querySelectorAll('.photo-preview-news').forEach(p => p.remove());
-}
-
-const newsPhotoInput = document.getElementById('news-photo-input');
-if (newsPhotoInput) {
-    newsPhotoInput.addEventListener('change', (e) => {
-        const files = Array.from(e.target.files);
-        files.forEach(file => {
-            if ((uploadedNewsFiles.length + existingNewsImages.length) < 5 && file.type.startsWith('image/')) {
-                uploadedNewsFiles.push(file);
-                const img = document.createElement('img');
-                img.src = URL.createObjectURL(file);
-                img.className = 'photo-preview-news';
-                document.getElementById('news-photo-preview-container').insertBefore(img, document.getElementById('add-news-photo-btn'));
-            }
-        });
-        if ((uploadedNewsFiles.length + existingNewsImages.length) >= 5) {
-            document.getElementById('add-news-photo-btn').style.display = 'none';
-        }
-    });
-}
-
-const adminNewsForm = document.getElementById('admin-news-form');
-if (adminNewsForm) {
-    adminNewsForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (!currentUser || currentUser.uid !== ADMIN_UID) return;
-
-        const saveBtn = document.getElementById('news-btn-save');
-        saveBtn.disabled = true;
-        saveBtn.textContent = "Завантаження...";
-
-        try {
-            const newUploadedUrls = [];
-            for (const file of uploadedNewsFiles) {
-                const fileExt = file.name.split('.').pop();
-                const fileName = `news_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-
-                const { data, error } = await supabase.storage
-                    .from('product-images')
-                    .upload(fileName, file);
-
-                if (error) throw error;
-
-                const { data: publicUrlData } = supabase.storage
-                    .from('product-images')
-                    .getPublicUrl(fileName);
-
-                newUploadedUrls.push(publicUrlData.publicUrl);
-            }
-
-            const finalImages = [...existingNewsImages, ...newUploadedUrls];
-
-            await setDoc(doc(db, "settings", "news"), {
-                active: document.getElementById('news-active').checked,
-                text: document.getElementById('news-text').value,
-                textFirst: document.getElementById('news-text-first').checked,
-                images: finalImages,
-                updatedAt: Date.now()
-            });
-
-            closeAdminNewsModal();
-        } catch (err) {
-            console.error(err);
-            alert(`Не вдалося зберегти новину: ${err.message}`);
-        } finally {
-            saveBtn.disabled = false;
-            saveBtn.textContent = "Зберегти";
-        }
-    });
-}
-
-document.getElementById('news-btn-cancel').addEventListener('click', closeAdminNewsModal);
-
-function openUserNewsModal(newsData) {
-    if (newsCarouselInterval) clearInterval(newsCarouselInterval);
-    
-    const container = document.getElementById('user-news-body');
-    if (!container) return;
-    container.innerHTML = '';
-
-    const textEl = document.createElement('div');
-    textEl.className = 'news-modal-text';
-    textEl.textContent = newsData.text || '';
-
-    let imgEl = null;
-    if (newsData.images && newsData.images.length > 0) {
-        imgEl = document.createElement('img');
-        imgEl.className = 'news-modal-img';
-        imgEl.src = newsData.images[0];
-
-        if (newsData.images.length > 1) {
-            let idx = 0;
-            newsCarouselInterval = setInterval(() => {
-                idx = (idx + 1) % newsData.images.length;
-                imgEl.src = newsData.images[idx];
-            }, 5000);
-        }
-    }
-
-    if (newsData.textFirst) {
-        if (textEl.textContent) container.appendChild(textEl);
-        if (imgEl) container.appendChild(imgEl);
-    } else {
-        if (imgEl) container.appendChild(imgEl);
-        if (textEl.textContent) container.appendChild(textEl);
-    }
-
-    document.getElementById('dont-show-news-checkbox').checked = false;
-    if (modalUserNews) modalUserNews.classList.add('active');
-
-    document.getElementById('user-news-close-btn').onclick = () => {
-        if (document.getElementById('dont-show-news-checkbox').checked) {
-            localStorage.setItem('last_news_viewed', newsData.updatedAt.toString());
-        }
-        if (newsCarouselInterval) clearInterval(newsCarouselInterval);
-        if (modalUserNews) modalUserNews.classList.remove('active');
-    };
-}
-
-onSnapshot(doc(db, "settings", "news"), (snapshot) => {
-    if (!snapshot.exists()) return;
-    const newsData = snapshot.data();
-    currentNewsData = newsData;
-
-    if (!newsData.active) {
-        if (modalUserNews) modalUserNews.classList.remove('remove');
-        return;
-    }
-
-    const lastViewed = Number(localStorage.getItem('last_news_viewed') || 0);
-    if (newsData.updatedAt > lastViewed) {
-        openUserNewsModal(newsData);
-    }
-});
-
 function closeWishes() {
     if (modalWishes) modalWishes.classList.remove('active');
     if (document.querySelector('#main-wishes-btn img')) {
@@ -428,6 +255,29 @@ function closeSettings() {
 
 function closeInfo() {
     if (modalInfo) modalInfo.classList.remove('active');
+}
+
+function openAdminNewsModal() {
+    closeWishes();
+    closeCart();
+    closeSettings();
+    closeInfo();
+    closeAdminUsers();
+    if (modalAdminNews) modalAdminNews.classList.add('active');
+    loadCurrentNewsInAdmin();
+}
+
+function closeAdminNewsModal() {
+    if (modalAdminNews) modalAdminNews.classList.remove('active');
+    const form = document.getElementById('admin-news-form');
+    if (form) form.reset();
+    uploadedNewsFiles = [];
+    document.querySelectorAll('.photo-preview-news').forEach(p => p.remove());
+}
+
+function closeUserNewsModal() {
+    if (modalUserNews) modalUserNews.classList.remove('active');
+    if (newsCarouselInterval) clearInterval(newsCarouselInterval);
 }
 
 function openWishes() {
@@ -502,6 +352,7 @@ window.addEventListener('click', (e) => {
     if (e.target === modalInfo) closeInfo();
     if (e.target === modalAdminUsers) closeAdminUsers();
     if (e.target === modalAdminNews) closeAdminNewsModal();
+    if (e.target === modalUserNews) closeUserNewsModal();
     if (e.target === modalBackdrop) {
         modalBackdrop.classList.remove('active');
         if (modalCarouselInterval) clearInterval(modalCarouselInterval);
@@ -950,5 +801,186 @@ if (backBtn) {
         if (checkoutBackdrop) checkoutBackdrop.classList.remove('active');
         isOneClickCheckout = false;
         oneClickItem = null;
+    });
+}
+
+/* ==========================================================================
+   ЛОГІКА УПРАВЛІННЯ ТА ВІДОБРАЖЕННЯ НОВИН (FIRESTORE & SUPABASE)
+   ========================================================================== */
+
+let localExistingNewsImages = []; // Для збереження посилань на вже існуючі картинки новини
+
+function handleNewsPhotoSelect(event) {
+    const files = Array.from(event.target.files);
+    if (uploadedNewsFiles.length + localExistingNewsImages.length + files.length > 5) {
+        alert("Можна завантажити не більше 5 зображень для новини");
+        return;
+    }
+
+    files.forEach(file => {
+        if (file.type.startsWith('image/')) {
+            uploadedNewsFiles.push(file);
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.classList.add('photo-preview-news');
+                
+                const container = document.getElementById('news-photo-preview-container');
+                const btn = document.getElementById('add-news-photo-btn');
+                if (container && btn) {
+                    container.insertBefore(img, btn);
+                }
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+async function loadCurrentNewsInAdmin() {
+    try {
+        const newsDoc = await getDoc(doc(db, "news", "current"));
+        if (newsDoc.exists()) {
+            const data = newsDoc.data();
+            document.getElementById('news-active').checked = data.active || false;
+            document.getElementById('news-text').value = data.text || "";
+            document.getElementById('news-text-first').checked = data.textFirst || false;
+            
+            localExistingNewsImages = data.images || [];
+            
+            // Очищуємо старі прев'ю перед кнопкою додавання
+            document.querySelectorAll('.photo-preview-news').forEach(p => p.remove());
+            
+            const container = document.getElementById('news-photo-preview-container');
+            const btn = document.getElementById('add-news-photo-btn');
+            
+            localExistingNewsImages.forEach(url => {
+                const img = document.createElement('img');
+                img.src = url;
+                img.classList.add('photo-preview-news');
+                if (container && btn) container.insertBefore(img, btn);
+            });
+        }
+    } catch (e) {
+        console.error("Помилка завантаження поточної новини в адмінку:", e);
+    }
+}
+
+async function saveNewsHandler(e) {
+    e.preventDefault();
+    if (!currentUser || currentUser.uid !== ADMIN_UID) return;
+
+    const saveBtn = document.getElementById('news-btn-save');
+    if (!saveBtn) return;
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Завантаження...";
+
+    try {
+        const imageUrls = [...localExistingNewsImages];
+
+        for (const file of uploadedNewsFiles) {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `news_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+
+            const { data, error } = await supabase.storage
+                .from('product-images')
+                .upload(fileName, file);
+
+            if (error) throw error;
+
+            const { data: publicUrlData } = supabase.storage
+                .from('product-images')
+                .getPublicUrl(fileName);
+
+            imageUrls.push(publicUrlData.publicUrl);
+        }
+
+        const newsData = {
+            active: document.getElementById('news-active').checked,
+            text: document.getElementById('news-text').value,
+            textFirst: document.getElementById('news-text-first').checked,
+            images: imageUrls,
+            updatedAt: new Date().toISOString()
+        };
+
+        await setDoc(doc(db, "news", "current"), newsData);
+        closeAdminNewsModal();
+        alert("Новину успішно збережено!");
+    } catch (err) {
+        console.error(err);
+        alert(`Не вдалося зберегти новину: ${err.message || err.code || err}`);
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Зберегти";
+    }
+}
+
+// Реалтайм слухач для показу новини звичайним користувачам
+onSnapshot(doc(db, "news", "current"), (docSnap) => {
+    if (!docSnap.exists()) return;
+    const newsData = docSnap.data();
+    
+    if (!newsData.active) return;
+    if (localStorage.getItem('dont_show_news') === 'true') return;
+
+    // Якщо це адмін — не показуємо йому модалку користувача автоматично, щоб не заважати
+    if (currentUser && currentUser.uid === ADMIN_UID) return;
+
+    const userNewsBody = document.getElementById('user-news-body');
+    if (!userNewsBody) return;
+
+    userNewsBody.innerHTML = '';
+
+    const textHtml = `<div class="news-modal-text">${newsData.text}</div>`;
+    let imagesHtml = '';
+    
+    if (newsData.images && newsData.images.length > 0) {
+        imagesHtml = `<img class="news-modal-img" src="${newsData.images[0]}" alt="Новина">`;
+    }
+
+    if (newsData.textFirst) {
+        userNewsBody.innerHTML = textHtml + imagesHtml;
+    } else {
+        userNewsBody.innerHTML = imagesHtml + textHtml;
+    }
+
+    if (newsCarouselInterval) clearInterval(newsCarouselInterval);
+    if (newsData.images && newsData.images.length > 1) {
+        let imgIndex = 0;
+        const newsImgEl = userNewsBody.querySelector('.news-modal-img');
+        if (newsImgEl) {
+            newsCarouselInterval = setInterval(() => {
+                imgIndex = (imgIndex + 1) % newsData.images.length;
+                newsImgEl.src = newsData.images[imgIndex];
+            }, 5000);
+        }
+    }
+
+    if (modalUserNews) modalUserNews.classList.add('active');
+});
+
+// Ініціалізація безпечних подій для вікон новин
+const newsCloseX = document.getElementById('news-btn-close-x');
+if (newsCloseX) newsCloseX.addEventListener('click', closeAdminNewsModal);
+
+const newsBtnCancel = document.getElementById('news-btn-cancel');
+if (newsBtnCancel) newsBtnCancel.addEventListener('click', closeAdminNewsModal);
+
+const adminNewsForm = document.getElementById('admin-news-form');
+if (adminNewsForm) adminNewsForm.addEventListener('submit', saveNewsHandler);
+
+const newsPhotoInput = document.getElementById('news-photo-input');
+if (newsPhotoInput) newsPhotoInput.addEventListener('change', handleNewsPhotoSelect);
+
+const userNewsCloseBtn = document.getElementById('user-news-close-btn');
+if (userNewsCloseBtn) userNewsCloseBtn.addEventListener('click', closeUserNewsModal);
+
+const dontShowCheckbox = document.getElementById('dont-show-news-checkbox');
+if (dontShowCheckbox) {
+    dontShowCheckbox.checked = localStorage.getItem('dont_show_news') === 'true';
+    dontShowCheckbox.addEventListener('change', (e) => {
+        localStorage.setItem('dont_show_news', e.target.checked);
     });
 }
