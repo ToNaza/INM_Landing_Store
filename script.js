@@ -31,10 +31,13 @@ let wishesList = [];
 let checkoutItems = [];
 let editingProductId = null; 
 let modalCarouselInterval = null;
+let newsCarouselInterval = null;
 
 let allProducts = [];
 let savedWishesIds = [];
 let savedCartIds = [];
+let currentNewsData = null; 
+let existingNewsImages = []; 
 
 let isOneClickCheckout = false;
 let oneClickItem = null;
@@ -45,6 +48,8 @@ const modalCart = document.getElementById('modal-cart');
 const modalSettings = document.getElementById('modal-settings');
 const modalInfo = document.getElementById('modal-info');
 const modalAdminUsers = document.getElementById('modal-admin-users');
+const modalAdminNews = document.getElementById('modal-admin-news');
+const modalUserNews = document.getElementById('modal-user-news');
 const checkoutBackdrop = document.getElementById('checkout-backdrop');
 const addItemBackdrop = document.getElementById('add-item-backdrop');
 
@@ -162,6 +167,15 @@ document.addEventListener('keydown', (event) => {
             alert("Доступ обмежено. Необхідні права адміністратора.");
         }
     }
+
+    if (event.shiftKey && event.code === 'KeyN') { 
+        event.preventDefault();
+        if (currentUser && currentUser.uid === ADMIN_UID) {
+            openAdminNewsModal();
+        } else {
+            alert("Доступ обмежено. Необхідні права адміністратора.");
+        }
+    }
 });
 
 async function openAdminUsersModal() {
@@ -169,6 +183,7 @@ async function openAdminUsersModal() {
     closeCart();
     closeSettings();
     closeInfo();
+    closeAdminNewsModal();
     
     if (modalAdminUsers) modalAdminUsers.classList.add('active');
 
@@ -218,6 +233,181 @@ function closeAdminUsers() {
     if (modalAdminUsers) modalAdminUsers.classList.remove('active');
 }
 
+async function openAdminNewsModal() {
+    closeWishes();
+    closeCart();
+    closeSettings();
+    closeInfo();
+    closeAdminUsers();
+
+    if (modalAdminNews) modalAdminNews.classList.add('active');
+    
+    document.querySelectorAll('.photo-preview-news').forEach(p => p.remove());
+    uploadedNewsFiles = [];
+    document.getElementById('add-news-photo-btn').style.display = 'flex';
+
+    try {
+        const newsDoc = await getDoc(doc(db, "settings", "news"));
+        if (newsDoc.exists()) {
+            const data = newsDoc.data();
+            document.getElementById('news-active').checked = data.active || false;
+            document.getElementById('news-text').value = data.text || '';
+            document.getElementById('news-text-first').checked = data.textFirst || false;
+            existingNewsImages = data.images || [];
+
+            existingNewsImages.forEach(url => {
+                const img = document.createElement('img');
+                img.src = url;
+                img.className = 'photo-preview-news';
+                document.getElementById('news-photo-preview-container').insertBefore(img, document.getElementById('add-news-photo-btn'));
+            });
+        }
+    } catch (e) {
+        console.error("Помилка завантаження конфігу новин:", e);
+    }
+}
+
+function closeAdminNewsModal() {
+    if (modalAdminNews) modalAdminNews.classList.remove('active');
+    const form = document.getElementById('admin-news-form');
+    if (form) form.reset();
+    uploadedNewsFiles = [];
+    document.querySelectorAll('.photo-preview-news').forEach(p => p.remove());
+}
+
+const newsPhotoInput = document.getElementById('news-photo-input');
+if (newsPhotoInput) {
+    newsPhotoInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files);
+        files.forEach(file => {
+            if ((uploadedNewsFiles.length + existingNewsImages.length) < 5 && file.type.startsWith('image/')) {
+                uploadedNewsFiles.push(file);
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                img.className = 'photo-preview-news';
+                document.getElementById('news-photo-preview-container').insertBefore(img, document.getElementById('add-news-photo-btn'));
+            }
+        });
+        if ((uploadedNewsFiles.length + existingNewsImages.length) >= 5) {
+            document.getElementById('add-news-photo-btn').style.display = 'none';
+        }
+    });
+}
+
+const adminNewsForm = document.getElementById('admin-news-form');
+if (adminNewsForm) {
+    adminNewsForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentUser || currentUser.uid !== ADMIN_UID) return;
+
+        const saveBtn = document.getElementById('news-btn-save');
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Завантаження...";
+
+        try {
+            const newUploadedUrls = [];
+            for (const file of uploadedNewsFiles) {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `news_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+
+                const { data, error } = await supabase.storage
+                    .from('product-images')
+                    .upload(fileName, file);
+
+                if (error) throw error;
+
+                const { data: publicUrlData } = supabase.storage
+                    .from('product-images')
+                    .getPublicUrl(fileName);
+
+                newUploadedUrls.push(publicUrlData.publicUrl);
+            }
+
+            const finalImages = [...existingNewsImages, ...newUploadedUrls];
+
+            await setDoc(doc(db, "settings", "news"), {
+                active: document.getElementById('news-active').checked,
+                text: document.getElementById('news-text').value,
+                textFirst: document.getElementById('news-text-first').checked,
+                images: finalImages,
+                updatedAt: Date.now()
+            });
+
+            closeAdminNewsModal();
+        } catch (err) {
+            console.error(err);
+            alert(`Не вдалося зберегти новину: ${err.message}`);
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Зберегти";
+        }
+    });
+}
+
+document.getElementById('news-btn-cancel').addEventListener('click', closeAdminNewsModal);
+
+function openUserNewsModal(newsData) {
+    if (newsCarouselInterval) clearInterval(newsCarouselInterval);
+    
+    const container = document.getElementById('user-news-body');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const textEl = document.createElement('div');
+    textEl.className = 'news-modal-text';
+    textEl.textContent = newsData.text || '';
+
+    let imgEl = null;
+    if (newsData.images && newsData.images.length > 0) {
+        imgEl = document.createElement('img');
+        imgEl.className = 'news-modal-img';
+        imgEl.src = newsData.images[0];
+
+        if (newsData.images.length > 1) {
+            let idx = 0;
+            newsCarouselInterval = setInterval(() => {
+                idx = (idx + 1) % newsData.images.length;
+                imgEl.src = newsData.images[idx];
+            }, 5000);
+        }
+    }
+
+    if (newsData.textFirst) {
+        if (textEl.textContent) container.appendChild(textEl);
+        if (imgEl) container.appendChild(imgEl);
+    } else {
+        if (imgEl) container.appendChild(imgEl);
+        if (textEl.textContent) container.appendChild(textEl);
+    }
+
+    document.getElementById('dont-show-news-checkbox').checked = false;
+    if (modalUserNews) modalUserNews.classList.add('active');
+
+    document.getElementById('user-news-close-btn').onclick = () => {
+        if (document.getElementById('dont-show-news-checkbox').checked) {
+            localStorage.setItem('last_news_viewed', newsData.updatedAt.toString());
+        }
+        if (newsCarouselInterval) clearInterval(newsCarouselInterval);
+        if (modalUserNews) modalUserNews.classList.remove('active');
+    };
+}
+
+onSnapshot(doc(db, "settings", "news"), (snapshot) => {
+    if (!snapshot.exists()) return;
+    const newsData = snapshot.data();
+    currentNewsData = newsData;
+
+    if (!newsData.active) {
+        if (modalUserNews) modalUserNews.classList.remove('remove');
+        return;
+    }
+
+    const lastViewed = Number(localStorage.getItem('last_news_viewed') || 0);
+    if (newsData.updatedAt > lastViewed) {
+        openUserNewsModal(newsData);
+    }
+});
+
 function closeWishes() {
     if (modalWishes) modalWishes.classList.remove('active');
     if (document.querySelector('#main-wishes-btn img')) {
@@ -245,6 +435,7 @@ function openWishes() {
     closeSettings(); 
     closeInfo();
     closeAdminUsers();
+    closeAdminNewsModal();
     if (modalWishes) modalWishes.classList.add('active');
     if (document.querySelector('#main-wishes-btn img')) {
         document.querySelector('#main-wishes-btn img').src = './media/love_on.svg';
@@ -256,6 +447,7 @@ function openCart() {
     closeSettings();
     closeInfo();
     closeAdminUsers();
+    closeAdminNewsModal();
     if (modalCart) modalCart.classList.add('active');
     if (document.querySelector('#main-cart-btn img')) {
         document.querySelector('#main-cart-btn img').src = './media/basket_on.svg';
@@ -267,6 +459,7 @@ function openSettings() {
     closeCart();
     closeInfo();
     closeAdminUsers();
+    closeAdminNewsModal();
     if (modalSettings) modalSettings.classList.add('active');
 }
 
@@ -276,6 +469,7 @@ if (infoBtn) {
         closeCart();
         closeSettings();
         closeAdminUsers();
+        closeAdminNewsModal();
         if (modalInfo) modalInfo.classList.add('active');
     });
 }
@@ -307,6 +501,7 @@ window.addEventListener('click', (e) => {
     if (e.target === modalCart) closeCart();
     if (e.target === modalInfo) closeInfo();
     if (e.target === modalAdminUsers) closeAdminUsers();
+    if (e.target === modalAdminNews) closeAdminNewsModal();
     if (e.target === modalBackdrop) {
         modalBackdrop.classList.remove('active');
         if (modalCarouselInterval) clearInterval(modalCarouselInterval);
@@ -344,6 +539,7 @@ function createCardElement(product) {
         closeSettings();
         closeInfo();
         closeAdminUsers();
+        closeAdminNewsModal();
         openProductModal(product);
     });
 
