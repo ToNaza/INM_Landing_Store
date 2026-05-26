@@ -809,6 +809,7 @@ if (backBtn) {
    ========================================================================== */
 
 let localExistingNewsImages = []; // Для збереження посилань на вже існуючі картинки новини
+let currentNewsTimestamp = null;  // Тимчасова мітка поточної активної новини
 
 function handleNewsPhotoSelect(event) {
     const files = Array.from(event.target.files);
@@ -902,7 +903,7 @@ async function saveNewsHandler(e) {
             text: document.getElementById('news-text').value,
             textFirst: document.getElementById('news-text-first').checked,
             images: imageUrls,
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString() // Створює унікальний таймстамп при кожному збереженні
         };
 
         await setDoc(doc(db, "news", "current"), newsData);
@@ -923,7 +924,12 @@ onSnapshot(doc(db, "news", "current"), (docSnap) => {
     const newsData = docSnap.data();
     
     if (!newsData.active) return;
-    if (localStorage.getItem('dont_show_news') === 'true') return;
+
+    // Зберігаємо таймстамп поточної новини з бази
+    currentNewsTimestamp = newsData.updatedAt || "";
+
+    // Порівнюємо: якщо прихована раніше мітка збігається з поточною — ігноруємо показ
+    if (localStorage.getItem('muted_news_timestamp') === currentNewsTimestamp) return;
 
     // Якщо це адмін — не показуємо йому модалку користувача автоматично, щоб не заважати
     if (currentUser && currentUser.uid === ADMIN_UID) return;
@@ -932,6 +938,10 @@ onSnapshot(doc(db, "news", "current"), (docSnap) => {
     if (!userNewsBody) return;
 
     userNewsBody.innerHTML = '';
+
+    // Скидаємо візуальний стан чекбоксу, оскільки новина оновилась/нова
+    const dontShowCheckbox = document.getElementById('dont-show-news-checkbox');
+    if (dontShowCheckbox) dontShowCheckbox.checked = false;
 
     const textHtml = `<div class="news-modal-text">${newsData.text}</div>`;
     let imagesHtml = '';
@@ -979,8 +989,12 @@ if (userNewsCloseBtn) userNewsCloseBtn.addEventListener('click', closeUserNewsMo
 
 const dontShowCheckbox = document.getElementById('dont-show-news-checkbox');
 if (dontShowCheckbox) {
-    dontShowCheckbox.checked = localStorage.getItem('dont_show_news') === 'true';
     dontShowCheckbox.addEventListener('change', (e) => {
-        localStorage.setItem('dont_show_news', e.target.checked);
+        if (e.target.checked && currentNewsTimestamp) {
+            // Записуємо унікальну мітку саме цієї версії новини
+            localStorage.setItem('muted_news_timestamp', currentNewsTimestamp);
+        } else {
+            localStorage.removeItem('muted_news_timestamp');
+        }
     });
 }
