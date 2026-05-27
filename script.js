@@ -1082,19 +1082,22 @@ function applyTechMaintenanceUI() {
         maintenanceOverlay.style.display = 'none';
     }
 }
-    // --- АВТОНОМНЫЙ БЛОК УПРАВЛЕНИЯ ТЕХ-СТОПОМ И АДМИНКОЙ ---
+// --- ОБНОВЛЕННЫЙ БЛОК УПРАВЛЕНИЯ ТЕХ-СТОПОМ И ХОТКЕЕВ ---
 
 let tempTechActive = false; // Глобальный статус для логики блокировки
 
-// 1. Единый слушатель базы данных в реальном времени
+// 1. Единый слушатель базы данных в реальном времени (админка + экран юзеров)
 onSnapshot(doc(db, "system", "maintenance"), (snapshot) => {
     const techToggleBtn = document.getElementById('tech-toggle-btn');
     const techTextInput = document.getElementById('tech-text-input');
+    const maintenanceModal = document.getElementById('modal-tech-maintenance');
     
     if (snapshot.exists()) {
         const data = snapshot.data();
         tempTechActive = data.active || false;
+        const techText = data.text || "";
         
+        // Синхронизируем кнопку в панели админа
         if (techToggleBtn) {
             if (tempTechActive) {
                 techToggleBtn.textContent = "Тех стоп: Активно";
@@ -1105,15 +1108,24 @@ onSnapshot(doc(db, "system", "maintenance"), (snapshot) => {
             }
         }
         
+        // Синхронизируем инпут админа (если он прямо сейчас не пишет туда)
         if (techTextInput && document.activeElement !== techTextInput) {
-            techTextInput.value = data.text || "";
+            techTextInput.value = techText;
+        }
+        
+        // РЕШЕНИЕ ПРОБЛЕМЫ 2: Подставляем текст из базы прямо в разметку экрана блокировки
+        if (maintenanceModal) {
+            const textElement = maintenanceModal.querySelector('p');
+            if (textElement) {
+                textElement.textContent = techText || "Ведуться технічні роботи. Будь ласка, зачекайте, скоро ми повернемося!";
+            }
         }
     }
     
     handleMaintenanceScreen();
 });
 
-// 2. Функция управления блокирующим экраном
+// 2. Функция управления отображением блокирующего экрана
 function handleMaintenanceScreen() {
     const maintenanceModal = document.getElementById('modal-tech-maintenance');
     if (!maintenanceModal) return;
@@ -1125,7 +1137,22 @@ function handleMaintenanceScreen() {
     }
 }
 
-// 3. Открытие окна тех-стопа из админ-меню
+// 3. РЕШЕНИЕ ПРОБЛЕМЫ 1: Обработчик горячих клавиш Shift + T (KeyT) с проверкой админки
+window.addEventListener('keydown', (e) => {
+    if (e.shiftKey && e.code === 'KeyT') {
+        e.preventDefault(); 
+        if (currentUser && currentUser.uid === ADMIN_UID) {
+            const adminTechModal = document.getElementById('modal-admin-tech');
+            if (adminTechModal) {
+                adminTechModal.classList.add('active');
+            }
+        } else {
+            console.error("Доступ заборонено: гарячі клавіші тех-системы доступні тільки адміну.");
+        }
+    }
+});
+
+// 4. Открытие окна тех-стопа через кнопку из главного админ-меню
 const adminMenuTechBtn = document.getElementById('admin-menu-tech');
 if (adminMenuTechBtn) {
     adminMenuTechBtn.addEventListener('click', () => {
@@ -1137,7 +1164,7 @@ if (adminMenuTechBtn) {
     });
 }
 
-// 4. Клик по тумблеру активации тех-стопа
+// 5. Клик по кнопке-тумблеру активации тех-стопа
 const techToggleBtn = document.getElementById('tech-toggle-btn');
 if (techToggleBtn) {
     techToggleBtn.addEventListener('click', () => {
@@ -1152,7 +1179,7 @@ if (techToggleBtn) {
     });
 }
 
-// 5. Кнопка "Зберегти зміни"
+// 6. Кнопка "Зберегти зміни" в Firebase
 const techSaveBtn = document.getElementById('tech-save-btn');
 if (techSaveBtn) {
     techSaveBtn.addEventListener('click', async () => {
@@ -1175,7 +1202,7 @@ if (techSaveBtn) {
     });
 }
 
-// 6. Тройной клик по логотипу (Твой исходный рабочий вариант через e.detail)
+// 7. Тройной клик по логотипу для вызова главного админ-меню
 const logoImg = document.getElementById('logo');
 if (logoImg) {
     logoImg.addEventListener('click', (e) => {
@@ -1197,7 +1224,7 @@ if (logoImg) {
     });
 }
 
-// 7. Кнопки главного меню выбора действий админа
+// 8. Связывание остальных стандартных кнопок главного админ-меню
 const adminMenuProducts = document.getElementById('admin-menu-products');
 if (adminMenuProducts) {
     adminMenuProducts.addEventListener('click', () => {
@@ -1228,7 +1255,6 @@ if (adminMenuUsers) {
     });
 }
 
-// Закрытие меню админа по клику на подложку
 const adminMenuModalElement = document.getElementById('modal-admin-menu');
 if (adminMenuModalElement) {
     adminMenuModalElement.addEventListener('click', (e) => {
