@@ -1139,85 +1139,33 @@ function openAdminTechModal() {
     }
 }
 
-// --- БЛОК УПРАВЛЕНИЯ ТЕХ-СТОПОМ (СТРОГО ТВОИ ID) ---
-
-let tempTechActive = false; // Переменная теперь объявлена и не вызовет ошибку
-
-const adminMenuTechBtn = document.getElementById('admin-menu-tech'); // Кнопка в меню
-const adminTechModal = document.getElementById('modal-admin-tech');   // Модалка тех-стопа
-const adminMenu = document.getElementById('modal-admin-menu');       // Главное меню админа
-
-const techToggleBtn = document.getElementById('tech-toggle-btn');   // Кнопка-тумблер
-const techTextInput = document.getElementById('tech-text-input');   // Поле ввода текста
-const techSaveBtn = document.getElementById('tech-save-btn');       // Кнопка сохранения
-
-// Функция визуального обновления твоей кнопки-тумблера
-function updateTechToggleUI(isActive) {
-    if (!techToggleBtn) return;
-    if (isActive) {
-        techToggleBtn.textContent = "Тех стоп: Активно";
-        techToggleBtn.className = "tech-btn-active";
+// Логика работы интерактивных элементов админки тех-стопа
+document.getElementById('tech-toggle-btn').addEventListener('click', () => {
+    tempTechActive = !tempTechActive;
+    const toggleBtn = document.getElementById('tech-toggle-btn');
+    if (tempTechActive) {
+        toggleBtn.textContent = "Тех стоп: Активно";
+        toggleBtn.className = "tech-btn-active";
     } else {
-        techToggleBtn.textContent = "Тех стоп: Неактивно";
-        techToggleBtn.className = "tech-btn-inactive";
+        toggleBtn.textContent = "Тех стоп: Неактивно";
+        toggleBtn.className = "tech-btn-inactive";
     }
-}
+});
 
-// 1. Открытие модалки тех-стопа и загрузка данных из Firestore
-if (adminMenuTechBtn) {
-    adminMenuTechBtn.addEventListener('click', async () => {
-        if (adminMenu) adminMenu.classList.remove('active');
-        
-        try {
-            // Читаем из твоей старой ветки базы данных
-            const settingsSnap = await getDoc(doc(db, "system", "maintenance"));
-            if (settingsSnap.exists()) {
-                const data = settingsSnap.data();
-                tempTechActive = data.active || false;
-                if (techTextInput) techTextInput.value = data.text || "";
-            } else {
-                tempTechActive = false;
-                if (techTextInput) techTextInput.value = "";
-            }
-            updateTechToggleUI(tempTechActive);
-        } catch (error) {
-            console.error("Не удалось загрузить статус тех-стопа:", error);
-        }
+document.getElementById('tech-save-btn').addEventListener('click', async () => {
+    const textInput = document.getElementById('tech-text-input').value;
+    try {
+        await setDoc(doc(db, "system", "maintenance"), {
+            active: tempTechActive,
+            text: textInput
+        });
+        document.getElementById('modal-admin-tech').classList.remove('active');
+    } catch (e) {
+        console.error("Ошибка сохранения тех-статуса:", e);
+    }
+});
 
-        if (adminTechModal) adminTechModal.classList.add('active');
-    });
-}
-
-// 2. Клик по тумблеру (твоя кнопка изменения статуса)
-if (techToggleBtn) {
-    techToggleBtn.addEventListener('click', () => {
-        tempTechActive = !tempTechActive;
-        updateTechToggleUI(tempTechActive);
-    });
-}
-
-// 3. Сохранение изменений по твоей кнопке 'tech-save-btn'
-if (techSaveBtn) {
-    techSaveBtn.addEventListener('click', async () => {
-        const textInputVal = techTextInput ? techTextInput.value : "";
-        try {
-            await setDoc(doc(db, "system", "maintenance"), {
-                active: tempTechActive,
-                text: textInputVal
-            }, { merge: true });
-            
-            alert("Статус тех-стопа успешно обновлен!");
-            if (adminTechModal) adminTechModal.classList.remove('active');
-        } catch (e) {
-            console.error("Ошибка сохранения тех-статуса:", e);
-            alert("Не удалось сохранить.");
-        }
-    });
-}
-
-
-// --- БЛОК СЧЕТЧИКА ТАПОВ И ОСТАЛЬНЫХ КНОПОК ---
-
+// Кастомный счетчик тапов для ПК и мобильных устройств
 let logoClickCount = 0;
 let logoClickTimeout;
 
@@ -1229,6 +1177,8 @@ if (logoImg) {
         
         if (logoClickCount === 3) {
             logoClickCount = 0;
+            
+            // Проверка авторизации администратора
             if (currentUser && currentUser.uid === ADMIN_UID) {
                 if (typeof closeWishes === 'function') closeWishes();
                 if (typeof closeCart === 'function') closeCart();
@@ -1237,45 +1187,213 @@ if (logoImg) {
                 if (typeof closeAdminUsers === 'function') closeAdminUsers();
                 if (typeof closeAdminNewsModal === 'function') closeAdminNewsModal();
                 
-                if (adminMenu) adminMenu.classList.add('active');
+                const adminMenu = document.getElementById('modal-admin-menu');
+                if (adminMenu) {
+                    adminMenu.classList.add('active');
+                }
             } else {
                 console.error("Доступ отклонен: вы не авторизованы как админ.");
             }
         }
-        logoClickTimeout = setTimeout(() => { logoClickCount = 0; }, 600);
+        
+        // Окно в 600мс для совершения трех нажатий
+        logoClickTimeout = setTimeout(() => {
+            logoClickCount = 0;
+        }, 600);
     });
 }
 
-// Безопасная привязка остальных дефолтных кнопок админки
-const adminMenuProducts = document.getElementById('admin-menu-products');
-if (adminMenuProducts) {
-    adminMenuProducts.addEventListener('click', () => {
+// Связываем кнопки главного меню выбора действий админа
+document.getElementById('admin-menu-products').addEventListener('click', () => {
+    document.getElementById('modal-admin-menu').classList.remove('active');
+    editingProductId = null; 
+    document.getElementById('add-btn-create').textContent = "Створити";
+    addItemBackdrop.classList.add('active');
+});
+document.getElementById('admin-menu-news').addEventListener('click', () => {
+    document.getElementById('modal-admin-menu').classList.remove('active');
+    openAdminNewsModal();
+});
+document.getElementById('admin-menu-users').addEventListener('click', () => {
+    document.getElementById('modal-admin-menu').classList.remove('active');
+    openAdminUsersModal();
+});
+
+
+const adminMenuModal = document.getElementById('modal-admin-menu');
+if (adminMenuModal) {
+    adminMenuModal.addEventListener('click', (e) => {
+        // Если клик пришелся именно на подложку, а не на контент меню
+        if (e.target === adminMenuModal) {
+            adminMenuModal.classList.remove('active');
+        }
+    });
+}
+
+
+const adminMenuTechBtn = document.getElementById('admin-menu-tech');
+const adminTechModal = document.getElementById('modal-admin-tech');
+const techStopCheckbox = document.getElementById('tech-stop-checkbox');
+const adminMenu = document.getElementById('modal-admin-menu');
+
+if (adminMenuTechBtn) {
+    adminMenuTechBtn.addEventListener('click', async () => {
         if (adminMenu) adminMenu.classList.remove('active');
-        editingProductId = null; 
-        const addBtnCreate = document.getElementById('add-btn-create');
-        if (addBtnCreate) addBtnCreate.textContent = "Створити";
-        if (typeof addItemBackdrop !== 'undefined') addItemBackdrop.classList.add('active');
+        
+        // Перед показом окна подтягиваем актуальное состояние из Firebase
+        try {
+            const settingsSnap = await getDoc(doc(db, "settings", "global"));
+            if (settingsSnap.exists() && techStopCheckbox) {
+                techStopCheckbox.checked = settingsSnap.data().techStop || false;
+            }
+        } catch (error) {
+            console.error("Не удалось загрузить текущий статус тех-стопа:", error);
+        }
+
+        if (adminTechModal) {
+            adminTechModal.classList.add('active');
+        }
     });
 }
 
-const adminMenuNews = document.getElementById('admin-menu-news');
-if (adminMenuNews) {
-    adminMenuNews.addEventListener('click', () => {
+// 2. Логика кнопки 'Сохранить изменения' внутри модалки Тех-стопа
+if (adminTechSaveBtn) {
+    adminTechSaveBtn.addEventListener('click', async () => {
+        try {
+            // Проверяем состояние чекбокса (включен или выключен тех-стоп)
+            const isTechStopActive = techStopCheckbox ? techStopCheckbox.checked : false;
+            
+            // Путь к документу с настройками в Firebase (замени "global" на свой ID документа, если он другой)
+            const settingsRef = doc(db, "settings", "global"); 
+            
+            // Записываем статус в базу
+            await setDoc(settingsRef, { techStop: isTechStopActive }, { merge: true });
+            
+            alert("Статус тех-стопа успешно обновлен!");
+            if (adminTechModal) adminTechModal.classList.remove('active');
+            
+        } catch (error) {
+            console.error("Ошибка при сохранении статуса:", error);
+            alert("Не удалось сохранить изменения. Открой консоль (F12) для деталей.");
+        }
+    });
+} else {
+    console.warn("Кнопка 'admin-tech-save-btn' не найдена.");
+}
+
+// 3. Закрытие модалки тех-стопа (на всякий случай)
+const adminTechCloseBtn = document.getElementById('admin-tech-close-btn');
+if (adminTechCloseBtn && adminTechModal) {
+    adminTechCloseBtn.addEventListener('click', () => {
+        adminTechModal.classList.remove('active');
+    });
+}
+
+// --- ГЛОБАЛЬНЫЙ БЛОК УПРАВЛЕНИЯ ТЕХ-СТОПОМ ---
+
+let tempTechActive = false; // Временный статус для админки
+
+// 1. Единый слушатель базы данных (работает в реальном времени для всех)
+onSnapshot(doc(db, "system", "maintenance"), (snapshot) => {
+    const techToggleBtn = document.getElementById('tech-toggle-btn');
+    const techTextInput = document.getElementById('tech-text-input');
+    
+    if (snapshot.exists()) {
+        const data = snapshot.data();
+        tempTechActive = data.active || false;
+        
+        // Синхронизируем кнопку админа с актуальным состоянием из базы
+        if (techToggleBtn) {
+            if (tempTechActive) {
+                techToggleBtn.textContent = "Тех стоп: Активно";
+                techToggleBtn.className = "tech-btn-active";
+            } else {
+                techToggleBtn.textContent = "Тех стоп: Неактивно";
+                techToggleBtn.className = "tech-btn-inactive";
+            }
+        }
+        
+        // Синхронизируем текст в инпуте (только если админ сам туда сейчас не пишет)
+        if (techTextInput && document.activeElement !== techTextInput) {
+            techTextInput.value = data.text || "";
+        }
+    }
+    
+    // После любого изменения в базе проверяем, нужно ли закрыть экран пользователям
+    handleMaintenanceScreen();
+});
+
+// 2. Функция блокировки экрана для обычных смертных
+function handleMaintenanceScreen() {
+    const maintenanceModal = document.getElementById('modal-tech-maintenance');
+    if (!maintenanceModal) return;
+    
+    // Блокируем, если тех-стоп активен И пользователь либо не залогинен, либо залогинен, но НЕ админ
+    if (tempTechActive && (!currentUser || currentUser.uid !== ADMIN_UID)) {
+        maintenanceModal.style.display = 'flex';
+    } else {
+        maintenanceModal.style.display = 'none';
+    }
+}
+
+// 3. Интеграция проверки в твою смену авторизации
+// НАЙДИ свой существующий onAuthStateChanged в коде и добавь handleMaintenanceScreen() в самый конец!
+onAuthStateChanged(auth, (user) => {
+    currentUser = user;
+    // ... твой старый код обработки входа/выхода юзера ...
+    
+    handleMaintenanceScreen(); // Обязательный вызов здесь!
+});
+
+
+// --- ОБРАБОТЧИКИ ИНТЕРФЕЙСА АДМИНА ---
+
+// Открытие окна тех-стопа (данные уже подтянуты глобально, просто открываем)
+const adminMenuTechBtn = document.getElementById('admin-menu-tech');
+if (adminMenuTechBtn) {
+    adminMenuTechBtn.addEventListener('click', () => {
+        const adminMenu = document.getElementById('modal-admin-menu');
         if (adminMenu) adminMenu.classList.remove('active');
-        if (typeof openAdminNewsModal === 'function') openAdminNewsModal();
+        
+        const adminTechModal = document.getElementById('modal-admin-tech');
+        if (adminTechModal) adminTechModal.classList.add('active');
     });
 }
 
-const adminMenuUsers = document.getElementById('admin-menu-users');
-if (adminMenuUsers) {
-    adminMenuUsers.addEventListener('click', () => {
-        if (adminMenu) adminMenu.classList.remove('active');
-        if (typeof openAdminUsersModal === 'function') openAdminUsersModal();
+// Клик по кнопке-тумблеру внутри модалки
+const techToggleBtn = document.getElementById('tech-toggle-btn');
+if (techToggleBtn) {
+    techToggleBtn.addEventListener('click', () => {
+        tempTechActive = !tempTechActive;
+        if (tempTechActive) {
+            techToggleBtn.textContent = "Тех стоп: Активно";
+            techToggleBtn.className = "tech-btn-active";
+        } else {
+            techToggleBtn.textContent = "Тех стоп: Неактивно";
+            techToggleBtn.className = "tech-btn-inactive";
+        }
     });
 }
 
-if (adminMenu) {
-    adminMenu.addEventListener('click', (e) => {
-        if (e.target === adminMenu) adminMenu.classList.remove('active');
+// Кнопка "Зберегти зміни"
+const techSaveBtn = document.getElementById('tech-save-btn');
+if (techSaveBtn) {
+    techSaveBtn.addEventListener('click', async () => {
+        const techTextInput = document.getElementById('tech-text-input');
+        const textInputVal = techTextInput ? techTextInput.value : "";
+        
+        try {
+            await setDoc(doc(db, "system", "maintenance"), {
+                active: tempTechActive,
+                text: textInputVal
+            }, { merge: true });
+            
+            alert("Дані тех-стопу успішно оновлено!");
+            const adminTechModal = document.getElementById('modal-admin-tech');
+            if (adminTechModal) adminTechModal.classList.remove('active');
+        } catch (e) {
+            console.error("Помилка збереження статусу тех-стопу:", e);
+            alert("Критична помилка при збереженні в Firebase.");
+        }
     });
 }
