@@ -1165,22 +1165,41 @@ document.getElementById('tech-save-btn').addEventListener('click', async () => {
     }
 });
 
-// Обработчик тройного клика по логотипу
+// Кастомный счетчик тапов для ПК и мобильных устройств
+let logoClickCount = 0;
+let logoClickTimeout;
+
 const logoImg = document.getElementById('logo');
 if (logoImg) {
-    logoImg.addEventListener('click', (e) => {
-        // Проверяем нативное количество быстрых кликов
-        if (e.detail === 3) {
+    logoImg.addEventListener('click', () => {
+        logoClickCount++;
+        clearTimeout(logoClickTimeout);
+        
+        if (logoClickCount === 3) {
+            logoClickCount = 0;
+            
+            // Проверка авторизации администратора
             if (currentUser && currentUser.uid === ADMIN_UID) {
-                closeWishes();
-                closeCart();
-                closeSettings();
-                closeInfo();
-                closeAdminUsers();
-                closeAdminNewsModal();
-                document.getElementById('modal-admin-menu').classList.add('active');
+                if (typeof closeWishes === 'function') closeWishes();
+                if (typeof closeCart === 'function') closeCart();
+                if (typeof closeSettings === 'function') closeSettings();
+                if (typeof closeInfo === 'function') closeInfo();
+                if (typeof closeAdminUsers === 'function') closeAdminUsers();
+                if (typeof closeAdminNewsModal === 'function') closeAdminNewsModal();
+                
+                const adminMenu = document.getElementById('modal-admin-menu');
+                if (adminMenu) {
+                    adminMenu.classList.add('active');
+                }
+            } else {
+                console.error("Доступ отклонен: вы не авторизованы как админ.");
             }
         }
+        
+        // Окно в 600мс для совершения трех нажатий
+        logoClickTimeout = setTimeout(() => {
+            logoClickCount = 0;
+        }, 600);
     });
 }
 
@@ -1200,3 +1219,13 @@ document.getElementById('admin-menu-users').addEventListener('click', () => {
     openAdminUsersModal();
 });
 document.getElementById('admin-menu-tech').addEventListener('click', openAdminTechModal);
+
+const adminMenuModal = document.getElementById('modal-admin-menu');
+if (adminMenuModal) {
+    adminMenuModal.addEventListener('click', (e) => {
+        // Если клик пришелся именно на подложку, а не на контент меню
+        if (e.target === adminMenuModal) {
+            adminMenuModal.classList.remove('active');
+        }
+    });
+}
