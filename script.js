@@ -1218,7 +1218,6 @@ document.getElementById('admin-menu-users').addEventListener('click', () => {
     document.getElementById('modal-admin-menu').classList.remove('active');
     openAdminUsersModal();
 });
-document.getElementById('admin-menu-tech').addEventListener('click', openAdminTechModal);
 
 const adminMenuModal = document.getElementById('modal-admin-menu');
 if (adminMenuModal) {
