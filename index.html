@@ -16,7 +16,7 @@
     <body>
         <div class="book">
             <div class="headers">
-                <img src="./media/INM_Logo.png"/>
+                <img id="logo" src="./media/INM_Logo.png"/>
                 <button id="main-wishes-btn"> <img src="./media/love_off.svg"/> </button> 
                 <button id="main-cart-btn"> <img src="./media/basket_off.svg"/> </button>   
                 <button id="main-settings-btn"> <img src="./media/settings_off.svg"/> </button>
@@ -334,6 +334,55 @@
             </div>
             <button id="user-news-close-btn" style="width: 100%; padding: 12px; background: #fff; color: #000; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; font-family: 'Jura', sans-serif; transition: background 0.2s;">Сховати новину</button>
         </div>
+    </div>
+</div>
+
+<div id="app-loading-screen">
+    <div class="loader-content">
+        <video src="./media/loader.mp4" autoplay loop muted playsinline class="loader-video"></video>
+        <p class="loader-text">Завантаження контенту...</p>
+    </div>
+</div>
+
+
+
+<div id="modal-admin-menu" class="modal-backdrop">
+    <div class="add-item-modal" style="background-color: #1f1f1f; color: #fff; max-width: 400px; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="color: #fff; margin: 0; font-family: 'Jura', sans-serif; font-size: 20px;">Панель адміністратора</h3>
+            <button class="close-btn" onclick="document.getElementById('modal-admin-menu').classList.remove('active')" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #fff; line-height: 1;">&times;</button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button id="admin-menu-products" class="admin-menu-btn">Управління товаром</button>
+            <button id="admin-menu-news" class="admin-menu-btn">Управління новиною</button>
+            <button id="admin-menu-users" class="admin-menu-btn">Управління користувачами</button>
+            <button id="admin-menu-tech" class="admin-menu-btn">Управління тех системою</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-admin-tech" class="modal-backdrop">
+    <div class="add-item-modal" style="background-color: #1f1f1f; color: #fff; max-width: 400px; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="color: #fff; margin: 0; font-family: 'Jura', sans-serif; font-size: 18px;">Управління тех системою</h3>
+            <button class="close-btn" onclick="document.getElementById('modal-admin-tech').classList.remove('active')" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #fff; line-height: 1;">&times;</button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 18px;">
+            <button id="tech-toggle-btn" class="tech-btn-inactive">Тех стоп: Неактивно</button>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label style="font-family: 'Jura', sans-serif; font-size: 13px; color: #a3a3a3;">Додаткове повідомлення для користувачів:</label>
+                <input type="text" id="tech-text-input" placeholder="Введіть текст або залиште пустим" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #2d2d2d; color: #fff; font-family: 'Jura', sans-serif; font-size: 14px;">
+            </div>
+            <button id="tech-save-btn" style="width: 100%; padding: 14px; background: #3b82f6; color: #fff; font-weight: bold; border-radius: 10px; border: none; cursor: pointer; font-family: 'Jura', sans-serif; font-size: 15px;">Зберегти зміни</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-tech-maintenance" class="tech-maintenance-backdrop">
+    <div class="tech-maintenance-content">
+        <video src="./media/твой_файл_анимации.mp4" autoplay loop muted playsinline class="loader-video" style="width: 140px; height: auto; margin-bottom: 20px;"></video>
+        <h2 class="tech-main-title">Упс, здається сайт знаходиться на технічному обслуговуванні через невеликі неполадки</h2>
+        <p id="tech-maintenance-custom-text" class="tech-custom-text"></p>
     </div>
 </div>
 <!-- ↑↑↑ Зона модальних вікон ↑↑↑ -->

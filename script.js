@@ -178,6 +178,14 @@ document.addEventListener('keydown', (event) => {
             alert("Доступ обмежено. Необхідні права адміністратора.");
         }
     }
+
+// НОВАЯ СВЯЗКА: Shift + T (Shift + Е) для тех-системы
+    if (event.shiftKey && (event.code === 'KeyT' || event.key === 'T' || event.key === 'е' || event.key === 'Е')) {
+        event.preventDefault();
+        if (currentUser && currentUser.uid === ADMIN_UID) {
+            openAdminTechModal();
+        }
+    }
 });
 
 async function openAdminUsersModal() {
@@ -1028,3 +1036,167 @@ if (dontShowCheckbox) {
         }
     });
 }
+
+
+onSnapshot(collection(db, "products"), (snapshot) => {
+    allProducts = [];
+    if (productsContainer) productsContainer.innerHTML = '';
+    
+    snapshot.forEach((doc) => {
+        const product = { id: doc.id, ...doc.data() };
+        allProducts.push(product);
+        const card = createCardElement(product);
+        if (productsContainer) productsContainer.appendChild(card);
+    });
+    
+    syncListsWithAllProducts();
+
+    // СКРЫТИЕ ЛОАДЕРА: как только данные пришли и отрисовались, убираем экран
+    const loadingScreen = document.getElementById('app-loading-screen');
+    if (loadingScreen && !loadingScreen.classList.contains('hidden')) {
+        loadingScreen.classList.add('hidden');
+    }
+});
+
+
+// Функция переключения окон тех-обслуживания
+function applyTechMaintenanceUI() {
+    const maintenanceOverlay = document.getElementById('modal-tech-maintenance');
+    if (!maintenanceOverlay) return;
+
+    const isAdmin = currentUser && currentUser.uid === ADMIN_UID;
+
+    // Если тех стоп активен и зашел НЕ админ — намертво блокируем интерфейс
+    if (isTechStopActive && !isAdmin) {
+        maintenanceOverlay.style.display = 'flex';
+        const customTextEl = document.getElementById('tech-maintenance-custom-text');
+        if (customTextEl) {
+            if (techStopText.trim() !== "") {
+                customTextEl.textContent = techStopText;
+                customTextEl.style.display = 'block';
+            } else {
+                customTextEl.style.display = 'none';
+            }
+        }
+    } else {
+        maintenanceOverlay.style.display = 'none';
+    }
+
+    // Синхронизация кнопки внутри админки
+    const toggleBtn = document.getElementById('tech-toggle-btn');
+    if (toggleBtn) {
+        if (isTechStopActive) {
+            toggleBtn.textContent = "Тех стоп: Активно";
+            toggleBtn.className = "tech-btn-active";
+        } else {
+            toggleBtn.textContent = "Тех стоп: Неактивно";
+            toggleBtn.className = "tech-btn-inactive";
+        }
+    }
+}
+
+// Слушаем изменения статуса тех-работ из Firestore в реальном времени
+onSnapshot(doc(db, "system", "maintenance"), (snapshot) => {
+    if (snapshot.exists()) {
+        const data = snapshot.data();
+        isTechStopActive = data.active || false;
+        techStopText = data.text || "";
+    } else {
+        isTechStopActive = false;
+        techStopText = "";
+    }
+    applyTechMaintenanceUI();
+});
+
+// Открытие окна управления тех-системой
+function openAdminTechModal() {
+    closeWishes();
+    closeCart();
+    closeSettings();
+    closeInfo();
+    closeAdminUsers();
+    closeAdminNewsModal();
+    document.getElementById('modal-admin-menu').classList.remove('active');
+    
+    const modalAdminTech = document.getElementById('modal-admin-tech');
+    if (modalAdminTech) {
+        modalAdminTech.classList.add('active');
+        tempTechActive = isTechStopActive;
+        
+        const textInput = document.getElementById('tech-text-input');
+        if (textInput) textInput.value = techStopText;
+        
+        const toggleBtn = document.getElementById('tech-toggle-btn');
+        if (toggleBtn) {
+            if (tempTechActive) {
+                toggleBtn.textContent = "Тех стоп: Активно";
+                toggleBtn.className = "tech-btn-active";
+            } else {
+                toggleBtn.textContent = "Тех стоп: Неактивно";
+                toggleBtn.className = "tech-btn-inactive";
+            }
+        }
+    }
+}
+
+// Логика работы интерактивных элементов админки тех-стопа
+document.getElementById('tech-toggle-btn').addEventListener('click', () => {
+    tempTechActive = !tempTechActive;
+    const toggleBtn = document.getElementById('tech-toggle-btn');
+    if (tempTechActive) {
+        toggleBtn.textContent = "Тех стоп: Активно";
+        toggleBtn.className = "tech-btn-active";
+    } else {
+        toggleBtn.textContent = "Тех стоп: Неактивно";
+        toggleBtn.className = "tech-btn-inactive";
+    }
+});
+
+document.getElementById('tech-save-btn').addEventListener('click', async () => {
+    const textInput = document.getElementById('tech-text-input').value;
+    try {
+        await setDoc(doc(db, "system", "maintenance"), {
+            active: tempTechActive,
+            text: textInput
+        });
+        document.getElementById('modal-admin-tech').classList.remove('active');
+    } catch (e) {
+        console.error("Ошибка сохранения тех-статуса:", e);
+    }
+});
+
+// Обработчик тройного клика по логотипу
+const logoImg = document.getElementById('logo');
+if (logoImg) {
+    logoImg.addEventListener('click', (e) => {
+        // Проверяем нативное количество быстрых кликов
+        if (e.detail === 3) {
+            if (currentUser && currentUser.uid === ADMIN_UID) {
+                closeWishes();
+                closeCart();
+                closeSettings();
+                closeInfo();
+                closeAdminUsers();
+                closeAdminNewsModal();
+                document.getElementById('modal-admin-menu').classList.add('active');
+            }
+        }
+    });
+}
+
+// Связываем кнопки главного меню выбора действий админа
+document.getElementById('admin-menu-products').addEventListener('click', () => {
+    document.getElementById('modal-admin-menu').classList.remove('active');
+    editingProductId = null; 
+    document.getElementById('add-btn-create').textContent = "Створити";
+    addItemBackdrop.classList.add('active');
+});
+document.getElementById('admin-menu-news').addEventListener('click', () => {
+    document.getElementById('modal-admin-menu').classList.remove('active');
+    openAdminNewsModal();
+});
+document.getElementById('admin-menu-users').addEventListener('click', () => {
+    document.getElementById('modal-admin-menu').classList.remove('active');
+    openAdminUsersModal();
+});
+document.getElementById('admin-menu-tech').addEventListener('click', openAdminTechModal);

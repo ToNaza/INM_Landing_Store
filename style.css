@@ -1165,3 +1165,165 @@ body.light-mode .faq-container::-webkit-scrollbar-thumb {
     transform: scale(0.95);
     border-color: #ef4444; /* Красная рамка при наведении */
 }
+
+
+
+
+/* Экран загрузки */
+#app-loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgb(0, 0, 0); /* Темный фон под стиль приложения */
+    backdrop-filter: blur(10px); /* Красивое размытие */
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 99999; /* Поверх абсолютно всего */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+/* Когда загрузка завершена — плавно скрываем */
+#app-loading-screen.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.loader-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    text-align: center;
+}
+
+/* Стили для видео-анимации загрузки */
+.loader-video {
+    width: 120px;       /* Подбери размер, какой лучше смотрится */
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+}
+
+.loader-text {
+    color: #ffffff;
+    font-family: 'Jura', sans-serif;
+    font-size: 16px;
+    letter-spacing: 1px;
+    margin-top: 10px;
+}
+
+
+@keyframes pulse {
+    0% { transform: scale(0.95); opacity: 0.8; }
+    50% { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+
+/* Кнопки выпадающего меню администратора */
+.admin-menu-btn {
+    width: 100%;
+    padding: 14px;
+    background-color: #2a2a2a;
+    color: #ffffff;
+    border: 1px solid #3a3a3a;
+    border-radius: 10px;
+    font-family: 'Jura', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.admin-menu-btn:hover {
+    background-color: #383838;
+    transform: translateY(-1px);
+}
+
+.admin-menu-btn:active {
+    transform: translateY(1px);
+}
+
+/* Статусы кнопки Тех Стопа */
+#tech-toggle-btn {
+    width: 100%;
+    padding: 14px;
+    font-weight: bold;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Jura', sans-serif;
+    font-size: 15px;
+    transition: background 0.2s;
+}
+
+.tech-btn-active {
+    background-color: #ef4444 !important; /* Красный */
+    color: #ffffff !important;
+}
+
+.tech-btn-inactive {
+    background-color: #22c55e !important; /* Зеленый */
+    color: #ffffff !important;
+}
+
+/* Блокирующий экран тех-обслуживания */
+.tech-maintenance-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #0b0b0b;
+    z-index: 999999; /* Поверх лоадера и всех окон */
+    display: none;   /* Управляется через JS (flex) */
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.tech-maintenance-content {
+    background-color: #161616;
+    border: 1px solid #2c2c2c;
+    border-radius: 20px;
+    padding: 45px 30px;
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+}
+
+.tech-main-title {
+    color: #ffffff;
+    font-family: 'Jura', sans-serif;
+    font-size: 19px;
+    font-weight: 600;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.tech-custom-text {
+    color: #ef4444; /* Выделим текст админа красным или нейтральным серым */
+    font-family: 'Jura', sans-serif;
+    font-size: 15px;
+    line-height: 1.4;
+    margin-top: 15px;
+    padding: 12px;
+    background: rgba(239, 68, 68, 0.07);
+    border: 1px dashed rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    width: 100%;
+    word-break: break-word;
+    display: none;
+}
