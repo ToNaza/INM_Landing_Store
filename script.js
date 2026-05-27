@@ -169,7 +169,6 @@ document.addEventListener('keydown', (event) => {
         }
     }
 
-    // Комбінація Shift + N / Т для управління новинами
     if (event.shiftKey && (event.code === 'KeyN' || event.key === 'N' || event.key === 'н' || event.key === 'Н')) { 
         event.preventDefault();
         if (currentUser && currentUser.uid === ADMIN_UID) {
@@ -179,11 +178,34 @@ document.addEventListener('keydown', (event) => {
         }
     }
 
-// НОВАЯ СВЯЗКА: Shift + T (Shift + Е) для тех-системы
-    if (event.shiftKey && (event.code === 'KeyT' || event.key === 'T' || event.key === 'е' || event.key === 'Е')) {
+    // Комбінація Shift + M для керування технічним режимом (тільки для адміна)
+    if (event.shiftKey && event.code === 'KeyM') {
         event.preventDefault();
         if (currentUser && currentUser.uid === ADMIN_UID) {
-            openAdminTechModal();
+            const maintenanceRef = doc(db, "config", "maintenance");
+            getDoc(maintenanceRef).then((docSnap) => {
+                const currentStatus = docSnap.exists() ? docSnap.data().enabled : false;
+                const newStatus = !currentStatus;
+                setDoc(maintenanceRef, { enabled: newStatus }, { merge: true })
+                    .then(() => {
+                        alert(`Техрежим успішно ${newStatus ? 'ВКЛЮЧЕНО' : 'ВИМКНЕНО'} для звичайних користувачів.`);
+                    })
+                    .catch(err => console.error("Помилка перемикання техрежиму:", err));
+            });
+        } else {
+            alert("Доступ обмежено. Необхідні права адміністратора.");
+        }
+    }
+});
+
+// Реактивний моніторинг техрежиму для обмеження доступу звичайних юзерів
+onSnapshot(doc(db, "config", "maintenance"), (docSnap) => {
+    if (docSnap.exists()) {
+        const maintenanceData = docSnap.data();
+        if (maintenanceData.enabled) {
+            if (!currentUser || currentUser.uid !== ADMIN_UID) {
+                window.location.href = 'maintenance.html'; 
+            }
         }
     }
 });
@@ -445,6 +467,7 @@ function updateCheckoutUI() {
     }
 }
 
+// Единственный корректный слушатель изменений товаров (с автоматическим скрытием загрузочного экрана)
 onSnapshot(collection(db, "products"), (snapshot) => {
     allProducts = [];
     if (productsContainer) productsContainer.innerHTML = '';
@@ -455,6 +478,11 @@ onSnapshot(collection(db, "products"), (snapshot) => {
         if (productsContainer) productsContainer.appendChild(card);
     });
     syncListsWithAllProducts();
+
+    const loadingScreen = document.getElementById('app-loading-screen');
+    if (loadingScreen && !loadingScreen.classList.contains('hidden')) {
+        loadingScreen.classList.add('hidden');
+    }
 });
 
 function openProductModal(product) {
@@ -798,7 +826,7 @@ if (buyBtn) {
             oneClickItem = null;
             updateCheckoutUI();
             modalCart.classList.remove('active'); 
-            if (checkoutBackdrop) checkoutBackdrop.classList.add('active');
+            if (checkoutBackdrop) checkoutBackdrop.classList.remove('active');
         }
     });
 }
@@ -816,8 +844,8 @@ if (backBtn) {
    ЛОГІКА УПРАВЛІННЯ ТА ВІДОБРАЖЕННЯ НОВИН (FIRESTORE & SUPABASE)
    ========================================================================== */
 
-let localExistingNewsImages = []; // Для збереження посилань на вже існуючі картинки новини
-let currentNewsTimestamp = null;  // Тимчасова мітка поточної активної новини
+let localExistingNewsImages = []; 
+let currentNewsTimestamp = null;  
 
 function handleNewsPhotoSelect(event) {
     const files = Array.from(event.target.files);
@@ -838,7 +866,6 @@ function handleNewsPhotoSelect(event) {
                 img.classList.add('photo-preview-news');
                 img.dataset.filename = file.name; 
                 
-                // 2. Видалення НОВОГО фото при кліку в адмінці
                 img.onclick = function() {
                     uploadedNewsFiles = uploadedNewsFiles.filter(f => f.name !== img.dataset.filename);
                     img.remove();
@@ -874,7 +901,6 @@ async function loadCurrentNewsInAdmin() {
                 img.src = url;
                 img.classList.add('photo-preview-news');
                 
-                // 2. Видалення СТАРОГО фото при кліку в адмінці
                 img.onclick = function() {
                     if (confirm("Видалити це фото з новини? (Зміни наберуть сили після збереження)")) {
                         localExistingNewsImages = localExistingNewsImages.filter(u => u !== url);
@@ -958,7 +984,6 @@ onSnapshot(doc(db, "news", "current"), (docSnap) => {
     const dontShowCheckbox = document.getElementById('dont-show-news-checkbox');
     if (dontShowCheckbox) dontShowCheckbox.checked = false;
 
-    // 1. Функція для збільшення фото (Лайтбокс)
     const openLightbox = (imgSrc) => {
         const lightbox = document.createElement('div');
         lightbox.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:30000; display:flex; align-items:center; justify-content:center; cursor:zoom-out; opacity:0; transition:opacity 0.2s ease;';
@@ -1010,7 +1035,6 @@ onSnapshot(doc(db, "news", "current"), (docSnap) => {
     if (modalUserNews) modalUserNews.classList.add('active');
 });
 
-// Ініціалізація подій
 const newsCloseX = document.getElementById('news-btn-close-x');
 if (newsCloseX) newsCloseX.addEventListener('click', closeAdminNewsModal);
 
@@ -1036,167 +1060,3 @@ if (dontShowCheckbox) {
         }
     });
 }
-
-
-onSnapshot(collection(db, "products"), (snapshot) => {
-    allProducts = [];
-    if (productsContainer) productsContainer.innerHTML = '';
-    
-    snapshot.forEach((doc) => {
-        const product = { id: doc.id, ...doc.data() };
-        allProducts.push(product);
-        const card = createCardElement(product);
-        if (productsContainer) productsContainer.appendChild(card);
-    });
-    
-    syncListsWithAllProducts();
-
-    // СКРЫТИЕ ЛОАДЕРА: как только данные пришли и отрисовались, убираем экран
-    const loadingScreen = document.getElementById('app-loading-screen');
-    if (loadingScreen && !loadingScreen.classList.contains('hidden')) {
-        loadingScreen.classList.add('hidden');
-    }
-});
-
-
-// Функция переключения окон тех-обслуживания
-function applyTechMaintenanceUI() {
-    const maintenanceOverlay = document.getElementById('modal-tech-maintenance');
-    if (!maintenanceOverlay) return;
-
-    const isAdmin = currentUser && currentUser.uid === ADMIN_UID;
-
-    // Если тех стоп активен и зашел НЕ админ — намертво блокируем интерфейс
-    if (isTechStopActive && !isAdmin) {
-        maintenanceOverlay.style.display = 'flex';
-        const customTextEl = document.getElementById('tech-maintenance-custom-text');
-        if (customTextEl) {
-            if (techStopText.trim() !== "") {
-                customTextEl.textContent = techStopText;
-                customTextEl.style.display = 'block';
-            } else {
-                customTextEl.style.display = 'none';
-            }
-        }
-    } else {
-        maintenanceOverlay.style.display = 'none';
-    }
-
-    // Синхронизация кнопки внутри админки
-    const toggleBtn = document.getElementById('tech-toggle-btn');
-    if (toggleBtn) {
-        if (isTechStopActive) {
-            toggleBtn.textContent = "Тех стоп: Активно";
-            toggleBtn.className = "tech-btn-active";
-        } else {
-            toggleBtn.textContent = "Тех стоп: Неактивно";
-            toggleBtn.className = "tech-btn-inactive";
-        }
-    }
-}
-
-// Слушаем изменения статуса тех-работ из Firestore в реальном времени
-onSnapshot(doc(db, "system", "maintenance"), (snapshot) => {
-    if (snapshot.exists()) {
-        const data = snapshot.data();
-        isTechStopActive = data.active || false;
-        techStopText = data.text || "";
-    } else {
-        isTechStopActive = false;
-        techStopText = "";
-    }
-    applyTechMaintenanceUI();
-});
-
-// Открытие окна управления тех-системой
-function openAdminTechModal() {
-    closeWishes();
-    closeCart();
-    closeSettings();
-    closeInfo();
-    closeAdminUsers();
-    closeAdminNewsModal();
-    document.getElementById('modal-admin-menu').classList.remove('active');
-    
-    const modalAdminTech = document.getElementById('modal-admin-tech');
-    if (modalAdminTech) {
-        modalAdminTech.classList.add('active');
-        tempTechActive = isTechStopActive;
-        
-        const textInput = document.getElementById('tech-text-input');
-        if (textInput) textInput.value = techStopText;
-        
-        const toggleBtn = document.getElementById('tech-toggle-btn');
-        if (toggleBtn) {
-            if (tempTechActive) {
-                toggleBtn.textContent = "Тех стоп: Активно";
-                toggleBtn.className = "tech-btn-active";
-            } else {
-                toggleBtn.textContent = "Тех стоп: Неактивно";
-                toggleBtn.className = "tech-btn-inactive";
-            }
-        }
-    }
-}
-
-// Логика работы интерактивных элементов админки тех-стопа
-document.getElementById('tech-toggle-btn').addEventListener('click', () => {
-    tempTechActive = !tempTechActive;
-    const toggleBtn = document.getElementById('tech-toggle-btn');
-    if (tempTechActive) {
-        toggleBtn.textContent = "Тех стоп: Активно";
-        toggleBtn.className = "tech-btn-active";
-    } else {
-        toggleBtn.textContent = "Тех стоп: Неактивно";
-        toggleBtn.className = "tech-btn-inactive";
-    }
-});
-
-document.getElementById('tech-save-btn').addEventListener('click', async () => {
-    const textInput = document.getElementById('tech-text-input').value;
-    try {
-        await setDoc(doc(db, "system", "maintenance"), {
-            active: tempTechActive,
-            text: textInput
-        });
-        document.getElementById('modal-admin-tech').classList.remove('active');
-    } catch (e) {
-        console.error("Ошибка сохранения тех-статуса:", e);
-    }
-});
-
-// Обработчик тройного клика по логотипу
-const logoImg = document.getElementById('logo');
-if (logoImg) {
-    logoImg.addEventListener('click', (e) => {
-        // Проверяем нативное количество быстрых кликов
-        if (e.detail === 3) {
-            if (currentUser && currentUser.uid === ADMIN_UID) {
-                closeWishes();
-                closeCart();
-                closeSettings();
-                closeInfo();
-                closeAdminUsers();
-                closeAdminNewsModal();
-                document.getElementById('modal-admin-menu').classList.add('active');
-            }
-        }
-    });
-}
-
-// Связываем кнопки главного меню выбора действий админа
-document.getElementById('admin-menu-products').addEventListener('click', () => {
-    document.getElementById('modal-admin-menu').classList.remove('active');
-    editingProductId = null; 
-    document.getElementById('add-btn-create').textContent = "Створити";
-    addItemBackdrop.classList.add('active');
-});
-document.getElementById('admin-menu-news').addEventListener('click', () => {
-    document.getElementById('modal-admin-menu').classList.remove('active');
-    openAdminNewsModal();
-});
-document.getElementById('admin-menu-users').addEventListener('click', () => {
-    document.getElementById('modal-admin-menu').classList.remove('active');
-    openAdminUsersModal();
-});
-document.getElementById('admin-menu-tech').addEventListener('click', openAdminTechModal);
