@@ -1139,21 +1139,19 @@ function openAdminTechModal() {
     }
 }
 
-// --- БЛОК УПРАВЛЕНИЯ ТЕХ-СТОПОМ (АДМИНКА) ---
+// --- БЛОК УПРАВЛЕНИЯ ТЕХ-СТОПОМ (СТРОГО ТВОИ ID) ---
 
-// Локальная переменная для хранения временного состояния тумблера в интерфейсе
-let tempTechActive = false; 
+let tempTechActive = false; // Переменная теперь объявлена и не вызовет ошибку
 
-const adminMenuTechBtn = document.getElementById('admin-menu-tech');
-const adminTechModal = document.getElementById('modal-admin-tech');
-const adminMenu = document.getElementById('modal-admin-menu');
+const adminMenuTechBtn = document.getElementById('admin-menu-tech'); // Кнопка в меню
+const adminTechModal = document.getElementById('modal-admin-tech');   // Модалка тех-стопа
+const adminMenu = document.getElementById('modal-admin-menu');       // Главное меню админа
 
-const techToggleBtn = document.getElementById('tech-toggle-btn');
-const techTextInput = document.getElementById('tech-text-input');
-const techSaveBtn = document.getElementById('tech-save-btn');
-const adminTechCloseBtn = document.getElementById('admin-tech-close-btn');
+const techToggleBtn = document.getElementById('tech-toggle-btn');   // Кнопка-тумблер
+const techTextInput = document.getElementById('tech-text-input');   // Поле ввода текста
+const techSaveBtn = document.getElementById('tech-save-btn');       // Кнопка сохранения
 
-// Функция для визуального обновления кнопки тумблера
+// Функция визуального обновления твоей кнопки-тумблера
 function updateTechToggleUI(isActive) {
     if (!techToggleBtn) return;
     if (isActive) {
@@ -1165,13 +1163,13 @@ function updateTechToggleUI(isActive) {
     }
 }
 
-// 1. Открытие модалки тех-стопа из главного админ-меню
+// 1. Открытие модалки тех-стопа и загрузка данных из Firestore
 if (adminMenuTechBtn) {
     adminMenuTechBtn.addEventListener('click', async () => {
         if (adminMenu) adminMenu.classList.remove('active');
         
-        // Загружаем актуальные настройки из Firestore прямо при открытии
         try {
+            // Читаем из твоей старой ветки базы данных
             const settingsSnap = await getDoc(doc(db, "system", "maintenance"));
             if (settingsSnap.exists()) {
                 const data = settingsSnap.data();
@@ -1183,14 +1181,14 @@ if (adminMenuTechBtn) {
             }
             updateTechToggleUI(tempTechActive);
         } catch (error) {
-            console.error("Не удалось загрузить текущий статус тех-стопа:", error);
+            console.error("Не удалось загрузить статус тех-стопа:", error);
         }
 
         if (adminTechModal) adminTechModal.classList.add('active');
     });
 }
 
-// 2. Клик по самому тумблеру (переключение состояния "активно/неактивно")
+// 2. Клик по тумблеру (твоя кнопка изменения статуса)
 if (techToggleBtn) {
     techToggleBtn.addEventListener('click', () => {
         tempTechActive = !tempTechActive;
@@ -1198,37 +1196,28 @@ if (techToggleBtn) {
     });
 }
 
-// 3. Логика кнопки "Сохранить изменения"
+// 3. Сохранение изменений по твоей кнопке 'tech-save-btn'
 if (techSaveBtn) {
     techSaveBtn.addEventListener('click', async () => {
         const textInputVal = techTextInput ? techTextInput.value : "";
         try {
-            // Сохраняем в единый путь: коллекция system, документ maintenance
             await setDoc(doc(db, "system", "maintenance"), {
                 active: tempTechActive,
                 text: textInputVal
             }, { merge: true });
             
-            alert("Статус тех-стопа успешно сохранен в базу!");
+            alert("Статус тех-стопа успешно обновлен!");
             if (adminTechModal) adminTechModal.classList.remove('active');
         } catch (e) {
             console.error("Ошибка сохранения тех-статуса:", e);
-            alert("Не удалось сохранить изменения. Проверь консоль.");
+            alert("Не удалось сохранить.");
         }
     });
 }
 
-// 4. Закрытие модалки тех-стопа по кнопке "Закрыть" (если она есть)
-if (adminTechCloseBtn && adminTechModal) {
-    adminTechCloseBtn.addEventListener('click', () => {
-        adminTechModal.classList.remove('active');
-    });
-}
 
+// --- БЛОК СЧЕТЧИКА ТАПОВ И ОСТАЛЬНЫХ КНОПОК ---
 
-// --- БЛОК ОСТАЛЬНЫХ ОКНО АДМИНКИ И СЧЕТЧИК ТАПОВ ---
-
-// Кастомный счетчик тапов по логотипу для ПК и мобильных устройств
 let logoClickCount = 0;
 let logoClickTimeout;
 
@@ -1240,7 +1229,6 @@ if (logoImg) {
         
         if (logoClickCount === 3) {
             logoClickCount = 0;
-            
             if (currentUser && currentUser.uid === ADMIN_UID) {
                 if (typeof closeWishes === 'function') closeWishes();
                 if (typeof closeCart === 'function') closeCart();
@@ -1254,14 +1242,11 @@ if (logoImg) {
                 console.error("Доступ отклонен: вы не авторизованы как админ.");
             }
         }
-        
-        logoClickTimeout = setTimeout(() => {
-            logoClickCount = 0;
-        }, 600);
+        logoClickTimeout = setTimeout(() => { logoClickCount = 0; }, 600);
     });
 }
 
-// Связываем кнопки главного меню выбора действий админа
+// Безопасная привязка остальных дефолтных кнопок админки
 const adminMenuProducts = document.getElementById('admin-menu-products');
 if (adminMenuProducts) {
     adminMenuProducts.addEventListener('click', () => {
@@ -1289,11 +1274,8 @@ if (adminMenuUsers) {
     });
 }
 
-// Закрытие главного админ-меню по клику на подложку
 if (adminMenu) {
     adminMenu.addEventListener('click', (e) => {
-        if (e.target === adminMenu) {
-            adminMenu.classList.remove('active');
-        }
+        if (e.target === adminMenu) adminMenu.classList.remove('active');
     });
 }
