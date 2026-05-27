@@ -1229,3 +1229,60 @@ if (adminMenuModal) {
         }
     });
 }
+
+
+// 1. Привязка кнопки открытия Тех-стопа из главного админ-меню
+const adminMenuTechBtn = document.getElementById('admin-menu-tech');
+const adminTechModal = document.getElementById('modal-admin-tech'); // Убедись, что ID совпадает с HTML!
+const adminTechSaveBtn = document.getElementById('admin-tech-save-btn'); // ID кнопки сохранения
+const techStopCheckbox = document.getElementById('tech-stop-checkbox'); // ID чекбокса/тумблера
+
+if (adminMenuTechBtn) {
+    adminMenuTechBtn.addEventListener('click', () => {
+        // Закрываем главное меню админа
+        const adminMenu = document.getElementById('modal-admin-menu');
+        if (adminMenu) adminMenu.classList.remove('active');
+        
+        // Открываем модалку тех-стопа
+        if (adminTechModal) {
+            adminTechModal.classList.add('active');
+        } else {
+            console.error("Критическая ошибка: элемент 'modal-admin-tech' не найден в HTML.");
+        }
+    });
+} else {
+    console.warn("Кнопка 'admin-menu-tech' не найдена.");
+}
+
+// 2. Логика кнопки 'Сохранить изменения' внутри модалки Тех-стопа
+if (adminTechSaveBtn) {
+    adminTechSaveBtn.addEventListener('click', async () => {
+        try {
+            // Проверяем состояние чекбокса (включен или выключен тех-стоп)
+            const isTechStopActive = techStopCheckbox ? techStopCheckbox.checked : false;
+            
+            // Путь к документу с настройками в Firebase (замени "global" на свой ID документа, если он другой)
+            const settingsRef = doc(db, "settings", "global"); 
+            
+            // Записываем статус в базу
+            await setDoc(settingsRef, { techStop: isTechStopActive }, { merge: true });
+            
+            alert("Статус тех-стопа успешно обновлен!");
+            if (adminTechModal) adminTechModal.classList.remove('active');
+            
+        } catch (error) {
+            console.error("Ошибка при сохранении статуса:", error);
+            alert("Не удалось сохранить изменения. Открой консоль (F12) для деталей.");
+        }
+    });
+} else {
+    console.warn("Кнопка 'admin-tech-save-btn' не найдена.");
+}
+
+// 3. Закрытие модалки тех-стопа (на всякий случай)
+const adminTechCloseBtn = document.getElementById('admin-tech-close-btn');
+if (adminTechCloseBtn && adminTechModal) {
+    adminTechCloseBtn.addEventListener('click', () => {
+        adminTechModal.classList.remove('active');
+    });
+}
