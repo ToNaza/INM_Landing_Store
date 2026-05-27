@@ -1139,33 +1139,96 @@ function openAdminTechModal() {
     }
 }
 
-// Логика работы интерактивных элементов админки тех-стопа
-document.getElementById('tech-toggle-btn').addEventListener('click', () => {
-    tempTechActive = !tempTechActive;
-    const toggleBtn = document.getElementById('tech-toggle-btn');
-    if (tempTechActive) {
-        toggleBtn.textContent = "Тех стоп: Активно";
-        toggleBtn.className = "tech-btn-active";
+// --- БЛОК УПРАВЛЕНИЯ ТЕХ-СТОПОМ (АДМИНКА) ---
+
+// Локальная переменная для хранения временного состояния тумблера в интерфейсе
+let tempTechActive = false; 
+
+const adminMenuTechBtn = document.getElementById('admin-menu-tech');
+const adminTechModal = document.getElementById('modal-admin-tech');
+const adminMenu = document.getElementById('modal-admin-menu');
+
+const techToggleBtn = document.getElementById('tech-toggle-btn');
+const techTextInput = document.getElementById('tech-text-input');
+const techSaveBtn = document.getElementById('tech-save-btn');
+const adminTechCloseBtn = document.getElementById('admin-tech-close-btn');
+
+// Функция для визуального обновления кнопки тумблера
+function updateTechToggleUI(isActive) {
+    if (!techToggleBtn) return;
+    if (isActive) {
+        techToggleBtn.textContent = "Тех стоп: Активно";
+        techToggleBtn.className = "tech-btn-active";
     } else {
-        toggleBtn.textContent = "Тех стоп: Неактивно";
-        toggleBtn.className = "tech-btn-inactive";
+        techToggleBtn.textContent = "Тех стоп: Неактивно";
+        techToggleBtn.className = "tech-btn-inactive";
     }
-});
+}
 
-document.getElementById('tech-save-btn').addEventListener('click', async () => {
-    const textInput = document.getElementById('tech-text-input').value;
-    try {
-        await setDoc(doc(db, "system", "maintenance"), {
-            active: tempTechActive,
-            text: textInput
-        });
-        document.getElementById('modal-admin-tech').classList.remove('active');
-    } catch (e) {
-        console.error("Ошибка сохранения тех-статуса:", e);
-    }
-});
+// 1. Открытие модалки тех-стопа из главного админ-меню
+if (adminMenuTechBtn) {
+    adminMenuTechBtn.addEventListener('click', async () => {
+        if (adminMenu) adminMenu.classList.remove('active');
+        
+        // Загружаем актуальные настройки из Firestore прямо при открытии
+        try {
+            const settingsSnap = await getDoc(doc(db, "system", "maintenance"));
+            if (settingsSnap.exists()) {
+                const data = settingsSnap.data();
+                tempTechActive = data.active || false;
+                if (techTextInput) techTextInput.value = data.text || "";
+            } else {
+                tempTechActive = false;
+                if (techTextInput) techTextInput.value = "";
+            }
+            updateTechToggleUI(tempTechActive);
+        } catch (error) {
+            console.error("Не удалось загрузить текущий статус тех-стопа:", error);
+        }
 
-// Кастомный счетчик тапов для ПК и мобильных устройств
+        if (adminTechModal) adminTechModal.classList.add('active');
+    });
+}
+
+// 2. Клик по самому тумблеру (переключение состояния "активно/неактивно")
+if (techToggleBtn) {
+    techToggleBtn.addEventListener('click', () => {
+        tempTechActive = !tempTechActive;
+        updateTechToggleUI(tempTechActive);
+    });
+}
+
+// 3. Логика кнопки "Сохранить изменения"
+if (techSaveBtn) {
+    techSaveBtn.addEventListener('click', async () => {
+        const textInputVal = techTextInput ? techTextInput.value : "";
+        try {
+            // Сохраняем в единый путь: коллекция system, документ maintenance
+            await setDoc(doc(db, "system", "maintenance"), {
+                active: tempTechActive,
+                text: textInputVal
+            }, { merge: true });
+            
+            alert("Статус тех-стопа успешно сохранен в базу!");
+            if (adminTechModal) adminTechModal.classList.remove('active');
+        } catch (e) {
+            console.error("Ошибка сохранения тех-статуса:", e);
+            alert("Не удалось сохранить изменения. Проверь консоль.");
+        }
+    });
+}
+
+// 4. Закрытие модалки тех-стопа по кнопке "Закрыть" (если она есть)
+if (adminTechCloseBtn && adminTechModal) {
+    adminTechCloseBtn.addEventListener('click', () => {
+        adminTechModal.classList.remove('active');
+    });
+}
+
+
+// --- БЛОК ОСТАЛЬНЫХ ОКНО АДМИНКИ И СЧЕТЧИК ТАПОВ ---
+
+// Кастомный счетчик тапов по логотипу для ПК и мобильных устройств
 let logoClickCount = 0;
 let logoClickTimeout;
 
@@ -1178,7 +1241,6 @@ if (logoImg) {
         if (logoClickCount === 3) {
             logoClickCount = 0;
             
-            // Проверка авторизации администратора
             if (currentUser && currentUser.uid === ADMIN_UID) {
                 if (typeof closeWishes === 'function') closeWishes();
                 if (typeof closeCart === 'function') closeCart();
@@ -1187,16 +1249,12 @@ if (logoImg) {
                 if (typeof closeAdminUsers === 'function') closeAdminUsers();
                 if (typeof closeAdminNewsModal === 'function') closeAdminNewsModal();
                 
-                const adminMenu = document.getElementById('modal-admin-menu');
-                if (adminMenu) {
-                    adminMenu.classList.add('active');
-                }
+                if (adminMenu) adminMenu.classList.add('active');
             } else {
                 console.error("Доступ отклонен: вы не авторизованы как админ.");
             }
         }
         
-        // Окно в 600мс для совершения трех нажатий
         logoClickTimeout = setTimeout(() => {
             logoClickCount = 0;
         }, 600);
@@ -1204,84 +1262,38 @@ if (logoImg) {
 }
 
 // Связываем кнопки главного меню выбора действий админа
-document.getElementById('admin-menu-products').addEventListener('click', () => {
-    document.getElementById('modal-admin-menu').classList.remove('active');
-    editingProductId = null; 
-    document.getElementById('add-btn-create').textContent = "Створити";
-    addItemBackdrop.classList.add('active');
-});
-document.getElementById('admin-menu-news').addEventListener('click', () => {
-    document.getElementById('modal-admin-menu').classList.remove('active');
-    openAdminNewsModal();
-});
-document.getElementById('admin-menu-users').addEventListener('click', () => {
-    document.getElementById('modal-admin-menu').classList.remove('active');
-    openAdminUsersModal();
-});
-
-const adminMenuModal = document.getElementById('modal-admin-menu');
-if (adminMenuModal) {
-    adminMenuModal.addEventListener('click', (e) => {
-        // Если клик пришелся именно на подложку, а не на контент меню
-        if (e.target === adminMenuModal) {
-            adminMenuModal.classList.remove('active');
-        }
-    });
-}
-
-
-// 1. Привязка кнопки открытия Тех-стопа из главного админ-меню
-const adminMenuTechBtn = document.getElementById('admin-menu-tech');
-const adminTechModal = document.getElementById('modal-admin-tech'); // Убедись, что ID совпадает с HTML!
-const adminTechSaveBtn = document.getElementById('admin-tech-save-btn'); // ID кнопки сохранения
-const techStopCheckbox = document.getElementById('tech-stop-checkbox'); // ID чекбокса/тумблера
-
-if (adminMenuTechBtn) {
-    adminMenuTechBtn.addEventListener('click', () => {
-        // Закрываем главное меню админа
-        const adminMenu = document.getElementById('modal-admin-menu');
+const adminMenuProducts = document.getElementById('admin-menu-products');
+if (adminMenuProducts) {
+    adminMenuProducts.addEventListener('click', () => {
         if (adminMenu) adminMenu.classList.remove('active');
-        
-        // Открываем модалку тех-стопа
-        if (adminTechModal) {
-            adminTechModal.classList.add('active');
-        } else {
-            console.error("Критическая ошибка: элемент 'modal-admin-tech' не найден в HTML.");
-        }
+        editingProductId = null; 
+        const addBtnCreate = document.getElementById('add-btn-create');
+        if (addBtnCreate) addBtnCreate.textContent = "Створити";
+        if (typeof addItemBackdrop !== 'undefined') addItemBackdrop.classList.add('active');
     });
-} else {
-    console.warn("Кнопка 'admin-menu-tech' не найдена.");
 }
 
-// 2. Логика кнопки 'Сохранить изменения' внутри модалки Тех-стопа
-if (adminTechSaveBtn) {
-    adminTechSaveBtn.addEventListener('click', async () => {
-        try {
-            // Проверяем состояние чекбокса (включен или выключен тех-стоп)
-            const isTechStopActive = techStopCheckbox ? techStopCheckbox.checked : false;
-            
-            // Путь к документу с настройками в Firebase (замени "global" на свой ID документа, если он другой)
-            const settingsRef = doc(db, "settings", "global"); 
-            
-            // Записываем статус в базу
-            await setDoc(settingsRef, { techStop: isTechStopActive }, { merge: true });
-            
-            alert("Статус тех-стопа успешно обновлен!");
-            if (adminTechModal) adminTechModal.classList.remove('active');
-            
-        } catch (error) {
-            console.error("Ошибка при сохранении статуса:", error);
-            alert("Не удалось сохранить изменения. Открой консоль (F12) для деталей.");
-        }
+const adminMenuNews = document.getElementById('admin-menu-news');
+if (adminMenuNews) {
+    adminMenuNews.addEventListener('click', () => {
+        if (adminMenu) adminMenu.classList.remove('active');
+        if (typeof openAdminNewsModal === 'function') openAdminNewsModal();
     });
-} else {
-    console.warn("Кнопка 'admin-tech-save-btn' не найдена.");
 }
 
-// 3. Закрытие модалки тех-стопа (на всякий случай)
-const adminTechCloseBtn = document.getElementById('admin-tech-close-btn');
-if (adminTechCloseBtn && adminTechModal) {
-    adminTechCloseBtn.addEventListener('click', () => {
-        adminTechModal.classList.remove('active');
+const adminMenuUsers = document.getElementById('admin-menu-users');
+if (adminMenuUsers) {
+    adminMenuUsers.addEventListener('click', () => {
+        if (adminMenu) adminMenu.classList.remove('active');
+        if (typeof openAdminUsersModal === 'function') openAdminUsersModal();
+    });
+}
+
+// Закрытие главного админ-меню по клику на подложку
+if (adminMenu) {
+    adminMenu.addEventListener('click', (e) => {
+        if (e.target === adminMenu) {
+            adminMenu.classList.remove('active');
+        }
     });
 }
