@@ -1081,7 +1081,7 @@ function applyTechMaintenanceUI() {
     } else {
         maintenanceOverlay.style.display = 'none';
     }
-
+}
     // --- ГЛОБАЛЬНЫЙ БЛОК УПРАВЛЕНИЯ ТЕХ-СТОПОМ ---
 
 let tempTechActive = false; // Временный статус для админки
