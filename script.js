@@ -594,24 +594,23 @@ function openProductModal(product) {
             }
         };
 
-        document.getElementById('modal-edit-btn').onclick = () => {
-            if (modalCarouselInterval) clearInterval(modalCarouselInterval);
-            editingProductId = product.id;
-            document.getElementById('add-name').value = product.name;
-            document.getElementById('add-desc').value = product.desc;
-            document.getElementById('add-price').value = product.price;
-            document.getElementById('add-qty').value = product.qty;
-            document.getElementById('add-link').value = product.olxLink || "";
-            
-            // Заполняем поле скидки при редактировании
-            const discountInput = document.getElementById('add-discount');
-            if (discountInput) discountInput.value = product.discount || "";
-            
-            document.getElementById('add-btn-create').textContent = "Зберегти";
-            
-            modalBackdrop.classList.remove('active');
-            addItemBackdrop.classList.add('active');
-        };
+// script.js -> внутри кнопки редактирования товара
+document.getElementById('modal-edit-btn').onclick = () => {
+    if (modalCarouselInterval) clearInterval(modalCarouselInterval);
+    editingProductId = product.id;
+    document.getElementById('add-name').value = product.name;
+    document.getElementById('add-desc').value = product.desc;
+    document.getElementById('add-price').value = product.price;
+    
+    // ↓↓↓ Добавляем подтягивание скидки (если её нет, будет пустая строка)
+    document.getElementById('add-discount').value = product.discount || "";
+    
+    document.getElementById('add-qty').value = product.qty;
+    document.getElementById('add-link').value = product.olxLink || "";
+    document.getElementById('add-btn-create').textContent = "Зберегти";
+    modalBackdrop.classList.remove('active');
+    addItemBackdrop.classList.add('active');
+};
     } else {
         textButtonsContainer.innerHTML = `
             <button id="modal-buy-1click">Замовити в 1 клік</button>
@@ -704,14 +703,15 @@ if (addItemForm) {
             const discountInput = document.getElementById('add-discount');
             const discount = discountInput ? parseInt(discountInput.value, 10) || 0 : 0;
 
-            const productData = {
-                name: document.getElementById('add-name').value,
-                desc: document.getElementById('add-desc').value,
-                price: Number(document.getElementById('add-price').value),
-                qty: Number(document.getElementById('add-qty').value),
-                olxLink: document.getElementById('add-link').value || "",
-                discount: discount // Сохраняем в базу
-            };
+
+        const productData = {
+            name: document.getElementById('add-name').value,
+            desc: document.getElementById('add-desc').value,
+            price: Number(document.getElementById('add-price').value),
+            discount: Number(document.getElementById('add-discount').value) || 0,
+            qty: Number(document.getElementById('add-qty').value),
+            olxLink: document.getElementById('add-link').value || ""
+        };
 
             if (typeof editingProductId !== 'undefined' && editingProductId) {
                 if (imageUrls.length > 0) productData.images = imageUrls;
@@ -1270,3 +1270,6 @@ if (adminMenuModalElement) {
         }
     });
 }
+
+
+addItemForm.addEventListener('submit', async (e)
