@@ -1271,5 +1271,3 @@ if (adminMenuModalElement) {
     });
 }
 
-
-addItemForm.addEventListener('submit', async (e)
