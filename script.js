@@ -1263,3 +1263,39 @@ if (adminMenuModalElement) {
         }
     });
 }
+
+
+const discountInput = document.getElementById('product-discount');
+// Приводим к числу. Если пусто или не число — будет 0
+const discount = discountInput ? parseInt(discountInput.value, 10) || 0 : 0; 
+
+// При формировании объекта для Firestore / Supabase добавляешь это поле:
+const productData = {
+    // твои старые поля (name, price, image...)
+    price: parseFloat(priceInput.value),
+    discount: discount // сохраняем процент скидки
+};
+
+
+// Допустим, item — это данные твоего товара из базы
+const originalPrice = item.price;
+const discount = item.discount || 0;
+
+let priceHTML = '';
+
+if (discount > 0) {
+    // Вычисляем цену со скидкой
+    const finalPrice = Math.round(originalPrice * (1 - discount / 100));
+    
+    priceHTML = `
+        <div class="product-price-container">
+            <span class="price-old">${originalPrice} ₴</span>
+            <span class="price-new">${finalPrice} ₴</span>
+        </div>
+    `;
+} else {
+    // Если скидки нет — выводим обычную цену без зачеркиваний
+    priceHTML = `<span class="product-price">${originalPrice} ₴</span>`;
+}
+
+// Далее этот priceHTML ты просто вставляешь внутрь шаблона карточки товара вместо старого блока цены

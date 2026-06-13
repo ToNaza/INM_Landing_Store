@@ -1327,3 +1327,25 @@ body.light-mode .faq-container::-webkit-scrollbar-thumb {
     word-break: break-word;
     display: none;
 }
+
+
+/* Контейнер для цен, чтобы они были в одну строку или аккуратно рядом */
+.product-price-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Старая цена — зачеркнутая */
+.price-old {
+    text-decoration: line-through;
+    color: #888888;
+    font-size: 14px;
+}
+
+/* Новая цена — красная и акцентная */
+.price-new {
+    color: #ef4444; /* Красный оттенок Tailwind */
+    font-weight: bold;
+    font-size: 18px;
+}
