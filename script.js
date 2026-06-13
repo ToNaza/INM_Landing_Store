@@ -169,7 +169,6 @@ document.addEventListener('keydown', (event) => {
         }
     }
 
-    // Комбінація Shift + N / Т для управління новинами
     if (event.shiftKey && (event.code === 'KeyN' || event.key === 'N' || event.key === 'н' || event.key === 'Н')) { 
         event.preventDefault();
         if (currentUser && currentUser.uid === ADMIN_UID) {
@@ -179,7 +178,6 @@ document.addEventListener('keydown', (event) => {
         }
     }
 
-// НОВАЯ СВЯЗКА: Shift + T (Shift + Е) для тех-системы
     if (event.shiftKey && (event.code === 'KeyT' || event.key === 'T' || event.key === 'е' || event.key === 'Е')) {
         event.preventDefault();
         if (currentUser && currentUser.uid === ADMIN_UID) {
@@ -374,6 +372,22 @@ function createCardElement(product) {
     const isAvailable = product.qty > 0;
     const statusClass = isAvailable ? 'status-available' : 'status-sold';
     const statusText = isAvailable ? `В наявності ${product.qty}шт.` : 'Продано';
+    
+    // ЛОГИКА СКИДКИ ДЛЯ КАРТОЧКИ
+    const discount = product.discount || 0;
+    let priceHTML = '';
+    
+    if (discount > 0) {
+        const finalPrice = Math.round(product.price * (1 - discount / 100));
+        priceHTML = `
+            <div class="product-price-container">
+                <span class="price-old">${product.price}₴</span>
+                <span class="price-new">${finalPrice}₴</span>
+            </div>
+        `;
+    } else {
+        priceHTML = `<span>Ціна - ${product.price}₴</span>`;
+    }
 
     card.innerHTML = `
         <div class="card-img-wrapper">
@@ -387,7 +401,7 @@ function createCardElement(product) {
                 </span>
             </div>
             <div class="info-right">
-                <span>Ціна - ${product.price}₴</span>
+                ${priceHTML}
             </div>
         </div>
     `;
@@ -430,18 +444,27 @@ function updateCheckoutUI() {
 
     let itemsToRender = isOneClickCheckout ? [oneClickItem] : checkoutItems;
 
-    const renderItem = (item) => `
-        <div class="checkout-item" style="display:flex; align-items:center; gap:10px; background:#a3a3a3; padding:10px; border-radius:10px; margin-bottom:10px; width: 100%; box-sizing: border-box;">
-            <img src="${item.images?.length ? item.images[0] : './media/no-photo.png'}" style="width:50px; height:50px; object-fit:cover; border-radius:5px;">
-            <div style="flex-grow:1; color:#000;">
-                <b>${item.name}</b><br>${item.price}₴
-            </div>
-        </div>`;
+    const renderItem = (item) => {
+        const discount = item.discount || 0;
+        const currentPrice = discount > 0 ? Math.round(item.price * (1 - discount / 100)) : item.price;
+        
+        return `
+            <div class="checkout-item" style="display:flex; align-items:center; gap:10px; background:#a3a3a3; padding:10px; border-radius:10px; margin-bottom:10px; width: 100%; box-sizing: border-box;">
+                <img src="${item.images?.length ? item.images[0] : './media/no-photo.png'}" style="width:50px; height:50px; object-fit:cover; border-radius:5px;">
+                <div style="flex-grow:1; color:#000;">
+                    <b>${item.name}</b><br>${discount > 0 ? `<span style="text-decoration:line-through; font-size:12px; color:#555;">${item.price}₴</span> ` : ''}${currentPrice}₴
+                </div>
+            </div>`;
+    };
 
     checkoutContainer.innerHTML = itemsToRender.map(renderItem).join('');
     
     if (totalSumEl) {
-        totalSumEl.textContent = itemsToRender.reduce((sum, item) => sum + item.price, 0);
+        totalSumEl.textContent = itemsToRender.reduce((sum, item) => {
+            const discount = item.discount || 0;
+            const currentPrice = discount > 0 ? Math.round(item.price * (1 - discount / 100)) : item.price;
+            return sum + currentPrice;
+        }, 0);
     }
 }
 
@@ -461,9 +484,19 @@ function openProductModal(product) {
     if (modalCarouselInterval) clearInterval(modalCarouselInterval);
 
     document.getElementById('modal-name').textContent = `“${product.name}”`;
-    document.getElementById('modal-price').textContent = `Ціна - ${product.price}₴`;
     document.getElementById('modal-status').textContent = product.qty > 0 ? `В наявності ${product.qty}шт.` : 'Продано';
     document.getElementById('modal-description').textContent = product.desc;
+    
+    // ЛОГИКА СКИДКИ В МОДАЛКЕ ТОВАРА
+    const discount = product.discount || 0;
+    const priceEl = document.getElementById('modal-price');
+    
+    if (discount > 0) {
+        const finalPrice = Math.round(product.price * (1 - discount / 100));
+        priceEl.innerHTML = `<span class="price-old" style="text-decoration: line-through; color: #888; font-size: 14px; margin-right: 8px;">${product.price}₴</span><span class="price-new" style="color: #ef4444; font-weight: bold; font-size: 18px;">${finalPrice}₴</span>`;
+    } else {
+        priceEl.textContent = `Ціна - ${product.price}₴`;
+    }
     
     const modalImg = document.getElementById('modal-img');
     modalImg.src = product.images?.length ? product.images[0] : './media/no-photo.png';
@@ -569,6 +602,11 @@ function openProductModal(product) {
             document.getElementById('add-price').value = product.price;
             document.getElementById('add-qty').value = product.qty;
             document.getElementById('add-link').value = product.olxLink || "";
+            
+            // Заполняем поле скидки при редактировании
+            const discountInput = document.getElementById('add-discount');
+            if (discountInput) discountInput.value = product.discount || "";
+            
             document.getElementById('add-btn-create').textContent = "Зберегти";
             
             modalBackdrop.classList.remove('active');
@@ -662,12 +700,17 @@ if (addItemForm) {
                 imageUrls.push(publicUrlData.publicUrl);
             }
 
+            // Считываем скидку
+            const discountInput = document.getElementById('add-discount');
+            const discount = discountInput ? parseInt(discountInput.value, 10) || 0 : 0;
+
             const productData = {
                 name: document.getElementById('add-name').value,
                 desc: document.getElementById('add-desc').value,
                 price: Number(document.getElementById('add-price').value),
                 qty: Number(document.getElementById('add-qty').value),
-                olxLink: document.getElementById('add-link').value || ""
+                olxLink: document.getElementById('add-link').value || "",
+                discount: discount // Сохраняем в базу
             };
 
             if (typeof editingProductId !== 'undefined' && editingProductId) {
@@ -723,9 +766,13 @@ if (checkoutForm) {
 
         let itemsText = '';
         let totalSum = 0;
+        
         itemsToProcess.forEach(item => {
-            itemsText += `📦 *${item.name}* — ${item.price}₴\n`;
-            totalSum += item.price;
+            const discount = item.discount || 0;
+            const currentPrice = discount > 0 ? Math.round(item.price * (1 - discount / 100)) : item.price;
+            
+            itemsText += `📦 *${item.name}* — ${currentPrice}₴ ${discount > 0 ? `(Знижка ${discount}%, стара ціна ${item.price}₴)` : ''}\n`;
+            totalSum += currentPrice;
         });
 
         const message = `🚨 *Нове замовлення!*\n\n👤 *Покупець:* ${nameWithEmail}\n📞 *Телефон:* ${phone}\n📧 *Email:* ${email}\n📍 *Місто:* ${city}\n🚚 *Служба:* ${delivery}\n🏢 *Відділення/Поштомат:* ${branch}\n\n🛒 *Товари:*\n${itemsText}\n💰 *Всього до сплати:* ${totalSum}₴`;
@@ -737,9 +784,9 @@ if (checkoutForm) {
                 body: JSON.stringify({ chat_id: TG_CHAT_ID, text: message, parse_mode: 'Markdown' })
             });
             
-            alert('Замовлення успешно надіслано!');
+            alert('Замовлення успішно надіслано!');
 
-            if (confirm("Бажаєте зберігти дані для майбутніх покупок?")) {
+            if (confirm("Бажаєте зберегти дані для майбутніх покупок?")) {
                 localStorage.setItem('checkout_name', pib);
                 localStorage.setItem('checkout_phone', phone);
                 localStorage.setItem('checkout_email', email);
@@ -816,8 +863,8 @@ if (backBtn) {
    ЛОГІКА УПРАВЛІННЯ ТА ВІДОБРАЖЕННЯ НОВИН (FIRESTORE & SUPABASE)
    ========================================================================== */
 
-let localExistingNewsImages = []; // Для збереження посилань на вже існуючі картинки новини
-let currentNewsTimestamp = null;  // Тимчасова мітка поточної активної новини
+let localExistingNewsImages = []; 
+let currentNewsTimestamp = null;  
 
 function handleNewsPhotoSelect(event) {
     const files = Array.from(event.target.files);
@@ -838,7 +885,6 @@ function handleNewsPhotoSelect(event) {
                 img.classList.add('photo-preview-news');
                 img.dataset.filename = file.name; 
                 
-                // 2. Видалення НОВОГО фото при кліку в адмінці
                 img.onclick = function() {
                     uploadedNewsFiles = uploadedNewsFiles.filter(f => f.name !== img.dataset.filename);
                     img.remove();
@@ -874,7 +920,6 @@ async function loadCurrentNewsInAdmin() {
                 img.src = url;
                 img.classList.add('photo-preview-news');
                 
-                // 2. Видалення СТАРОГО фото при кліку в адмінці
                 img.onclick = function() {
                     if (confirm("Видалити це фото з новини? (Зміни наберуть сили після збереження)")) {
                         localExistingNewsImages = localExistingNewsImages.filter(u => u !== url);
@@ -930,7 +975,7 @@ async function saveNewsHandler(e) {
 
         await setDoc(doc(db, "news", "current"), newsData);
         closeAdminNewsModal();
-        alert("Новину успешно збережено!");
+        alert("Новину успішно збережено!");
     } catch (err) {
         console.error(err);
         alert(`Не вдалося зберегти новину: ${err.message || err.code || err}`);
@@ -958,7 +1003,6 @@ onSnapshot(doc(db, "news", "current"), (docSnap) => {
     const dontShowCheckbox = document.getElementById('dont-show-news-checkbox');
     if (dontShowCheckbox) dontShowCheckbox.checked = false;
 
-    // 1. Функція для збільшення фото (Лайтбокс)
     const openLightbox = (imgSrc) => {
         const lightbox = document.createElement('div');
         lightbox.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:30000; display:flex; align-items:center; justify-content:center; cursor:zoom-out; opacity:0; transition:opacity 0.2s ease;';
@@ -1010,7 +1054,7 @@ onSnapshot(doc(db, "news", "current"), (docSnap) => {
     if (modalUserNews) modalUserNews.classList.add('active');
 });
 
-// Ініціалізація подій
+// Ініціалізація подій новини
 const newsCloseX = document.getElementById('news-btn-close-x');
 if (newsCloseX) newsCloseX.addEventListener('click', closeAdminNewsModal);
 
@@ -1037,7 +1081,7 @@ if (dontShowCheckbox) {
     });
 }
 
-
+// СКРЫТИЕ ЛОАДЕРА
 onSnapshot(collection(db, "products"), (snapshot) => {
     allProducts = [];
     if (productsContainer) productsContainer.innerHTML = '';
@@ -1051,42 +1095,15 @@ onSnapshot(collection(db, "products"), (snapshot) => {
     
     syncListsWithAllProducts();
 
-    // СКРЫТИЕ ЛОАДЕРА: как только данные пришли и отрисовались, убираем экран
     const loadingScreen = document.getElementById('app-loading-screen');
     if (loadingScreen && !loadingScreen.classList.contains('hidden')) {
         loadingScreen.classList.add('hidden');
     }
 });
 
+let tempTechActive = false; 
 
-// Функция переключения окон тех-обслуживания
-function applyTechMaintenanceUI() {
-    const maintenanceOverlay = document.getElementById('modal-tech-maintenance');
-    if (!maintenanceOverlay) return;
-
-    const isAdmin = currentUser && currentUser.uid === ADMIN_UID;
-
-    // Если тех стоп активен и зашел НЕ админ — намертво блокируем интерфейс
-    if (isTechStopActive && !isAdmin) {
-        maintenanceOverlay.style.display = 'flex';
-        const customTextEl = document.getElementById('tech-maintenance-custom-text');
-        if (customTextEl) {
-            if (techStopText.trim() !== "") {
-                customTextEl.textContent = techStopText;
-                customTextEl.style.display = 'block';
-            } else {
-                customTextEl.style.display = 'none';
-            }
-        }
-    } else {
-        maintenanceOverlay.style.display = 'none';
-    }
-}
-// --- ОБНОВЛЕННЫЙ БЛОК УПРАВЛЕНИЯ ТЕХ-СТОПОМ И ХОТКЕЕВ ---
-
-let tempTechActive = false; // Глобальный статус для логики блокировки
-
-// 1. Единый слушатель базы данных в реальном времени (админка + экран юзеров)
+// Единый слушатель базы данных для тех-стопа
 onSnapshot(doc(db, "system", "maintenance"), (snapshot) => {
     const techToggleBtn = document.getElementById('tech-toggle-btn');
     const techTextInput = document.getElementById('tech-text-input');
@@ -1097,7 +1114,6 @@ onSnapshot(doc(db, "system", "maintenance"), (snapshot) => {
         tempTechActive = data.active || false;
         const techText = data.text || "";
         
-        // Синхронизируем кнопку в панели админа
         if (techToggleBtn) {
             if (tempTechActive) {
                 techToggleBtn.textContent = "Тех стоп: Активно";
@@ -1108,12 +1124,10 @@ onSnapshot(doc(db, "system", "maintenance"), (snapshot) => {
             }
         }
         
-        // Синхронизируем инпут админа (если он прямо сейчас не пишет туда)
         if (techTextInput && document.activeElement !== techTextInput) {
             techTextInput.value = techText;
         }
         
-        // РЕШЕНИЕ ПРОБЛЕМЫ 2: Подставляем текст из базы прямо в разметку экрана блокировки
         if (maintenanceModal) {
             const textElement = maintenanceModal.querySelector('p');
             if (textElement) {
@@ -1125,7 +1139,6 @@ onSnapshot(doc(db, "system", "maintenance"), (snapshot) => {
     handleMaintenanceScreen();
 });
 
-// 2. Функция управления отображением блокирующего экрана
 function handleMaintenanceScreen() {
     const maintenanceModal = document.getElementById('modal-tech-maintenance');
     if (!maintenanceModal) return;
@@ -1137,7 +1150,6 @@ function handleMaintenanceScreen() {
     }
 }
 
-// 3. РЕШЕНИЕ ПРОБЛЕМЫ 1: Обработчик горячих клавиш Shift + T (KeyT) с проверкой админки
 window.addEventListener('keydown', (e) => {
     if (e.shiftKey && e.code === 'KeyT') {
         e.preventDefault(); 
@@ -1152,7 +1164,6 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
-// 4. Открытие окна тех-стопа через кнопку из главного админ-меню
 const adminMenuTechBtn = document.getElementById('admin-menu-tech');
 if (adminMenuTechBtn) {
     adminMenuTechBtn.addEventListener('click', () => {
@@ -1164,7 +1175,6 @@ if (adminMenuTechBtn) {
     });
 }
 
-// 5. Клик по кнопке-тумблеру активации тех-стопа
 const techToggleBtn = document.getElementById('tech-toggle-btn');
 if (techToggleBtn) {
     techToggleBtn.addEventListener('click', () => {
@@ -1179,7 +1189,6 @@ if (techToggleBtn) {
     });
 }
 
-// 6. Кнопка "Зберегти зміни" в Firebase
 const techSaveBtn = document.getElementById('tech-save-btn');
 if (techSaveBtn) {
     techSaveBtn.addEventListener('click', async () => {
@@ -1202,7 +1211,6 @@ if (techSaveBtn) {
     });
 }
 
-// 7. Тройной клик по логотипу для вызова главного админ-меню
 const logoImg = document.getElementById('logo');
 if (logoImg) {
     logoImg.addEventListener('click', (e) => {
@@ -1218,13 +1226,12 @@ if (logoImg) {
                 const adminMenu = document.getElementById('modal-admin-menu');
                 if (adminMenu) adminMenu.classList.add('active');
             } else {
-                console.error("Доступ отклонен: вы не авторизованы как админ.");
+                console.error("Доступ отклонен: вы не авторизованы как admin.");
             }
         }
     });
 }
 
-// 8. Связывание остальных стандартных кнопок главного админ-меню
 const adminMenuProducts = document.getElementById('admin-menu-products');
 if (adminMenuProducts) {
     adminMenuProducts.addEventListener('click', () => {
@@ -1263,39 +1270,3 @@ if (adminMenuModalElement) {
         }
     });
 }
-
-
-const discountInput = document.getElementById('product-discount');
-// Приводим к числу. Если пусто или не число — будет 0
-const discount = discountInput ? parseInt(discountInput.value, 10) || 0 : 0; 
-
-// При формировании объекта для Firestore / Supabase добавляешь это поле:
-const productData = {
-    // твои старые поля (name, price, image...)
-    price: parseFloat(priceInput.value),
-    discount: discount // сохраняем процент скидки
-};
-
-
-// Допустим, item — это данные твоего товара из базы
-const originalPrice = item.price;
-const discount = item.discount || 0;
-
-let priceHTML = '';
-
-if (discount > 0) {
-    // Вычисляем цену со скидкой
-    const finalPrice = Math.round(originalPrice * (1 - discount / 100));
-    
-    priceHTML = `
-        <div class="product-price-container">
-            <span class="price-old">${originalPrice} ₴</span>
-            <span class="price-new">${finalPrice} ₴</span>
-        </div>
-    `;
-} else {
-    // Если скидки нет — выводим обычную цену без зачеркиваний
-    priceHTML = `<span class="product-price">${originalPrice} ₴</span>`;
-}
-
-// Далее этот priceHTML ты просто вставляешь внутрь шаблона карточки товара вместо старого блока цены
