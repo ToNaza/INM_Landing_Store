@@ -1339,7 +1339,7 @@ body.light-mode .faq-container::-webkit-scrollbar-thumb {
 /* Старая цена — зачеркнутая */
 .price-old {
     text-decoration: line-through;
-    color: #888888;
+    color: #505050;
     font-size: 14px;
 }
 
