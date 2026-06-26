@@ -412,7 +412,7 @@ background: linear-gradient(146deg, rgba(230, 230, 230, 1) 0%, rgba(179, 179, 17
 }
 
 .settings-row {
-    background-color: #888888; /* Цвет блоков внутри меню */
+    background-color: #505050; /* Цвет блоков внутри меню */
     border-radius: 12px;
     padding: 12px 15px;
     display: flex;
