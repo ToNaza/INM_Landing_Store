@@ -493,7 +493,7 @@ function openProductModal(product) {
     
     if (discount > 0) {
         const finalPrice = Math.round(product.price * (1 - discount / 100));
-        priceEl.innerHTML = `<span class="price-old" style="text-decoration: line-through; color: #888; font-size: 14px; margin-right: 8px;">${product.price}₴</span><span class="price-new" style="color: #ef4444; font-weight: bold; font-size: 18px;">${finalPrice}₴</span>`;
+        priceEl.innerHTML = `<span class="price-old" style="text-decoration: line-through; color: #505050; font-size: 14px; margin-right: 8px;">${product.price}₴</span><span class="price-new" style="color: #ef4444; font-weight: bold; font-size: 18px;">${finalPrice}₴</span>`;
     } else {
         priceEl.textContent = `Ціна - ${product.price}₴`;
     }

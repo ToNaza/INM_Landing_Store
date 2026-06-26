@@ -1339,9 +1339,10 @@ body.light-mode .faq-container::-webkit-scrollbar-thumb {
 /* Старая цена — зачеркнутая */
 .price-old {
     text-decoration: line-through;
-    color: #1d1d1d;
+    color: #505050;
     font-size: 14px;
 }
+
 
 /* Новая цена — красная и акцентная */
 .price-new {
