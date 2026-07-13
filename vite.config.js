@@ -1,8 +1,7 @@
 import { defineConfig } from 'vite';
 import { execSync } from 'child_process';
 
-let version = 'v0.0.0'; // Значення за замовчуванням, якщо тегів ще немає
-
+let version = execSync('git describe --tags --always').toString().trim();
 try {
   // Команда шукає останній Git-тег у репозиторії
   version = execSync('git describe --tags --abbrev=0').toString().trim();
