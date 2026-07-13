@@ -43,7 +43,7 @@ body{
         width: 50px;
         height: 50px;
         margin: 5px;
-        background-color: rgba(255, 255, 255, 0.400);
+        background-color: rgba(255, 255, 255, 0.37);
         border-radius: 10px;
         margin-top: 10px;
 
@@ -75,7 +75,7 @@ body{
 .card {
     flex: 1 1 280px;         
     max-width: 310px;        
-    background-color: rgba(255, 255, 255, 0.308); /* Серый полупрозрачный фон */
+    background-color: rgba(255, 255, 255, 0.37); /* Серый полупрозрачный фон */
     border-radius: 20px;
     padding: 12px;
     box-sizing: border-box;
@@ -162,8 +162,8 @@ background: linear-gradient(146deg, rgba(230, 230, 230, 1) 0%, rgba(179, 179, 17
 
 /* Главный контейнер модального окна */
 .modal-content {
-    background-color: #5b5b5b; /* Цвет из макета */
-    border-radius: 20px;
+    background-color: #0e0d0d83; /* Цвет из макета */
+    border-radius: 10px;
     padding: 20px;
     width: 90%;
     max-width: 700px;
@@ -171,6 +171,7 @@ background: linear-gradient(146deg, rgba(230, 230, 230, 1) 0%, rgba(179, 179, 17
     flex-direction: column;
     gap: 20px;
     box-sizing: border-box;
+    box-shadow: 0px 0px 25px rgb(185, 185, 185);
 }
 
 /* --- Десктопная сетка --- */
@@ -196,7 +197,7 @@ background: linear-gradient(146deg, rgba(230, 230, 230, 1) 0%, rgba(179, 179, 17
 
 .modal-info {
     flex: 1;
-    background-color: rgba(255, 255, 255, 0.25);
+    background-color: rgba(255, 255, 255, 0.5);
     border-radius: 14px;
     padding: 15px;
     display: flex;
@@ -218,7 +219,7 @@ background: linear-gradient(146deg, rgba(230, 230, 230, 1) 0%, rgba(179, 179, 17
 }
 
 .modal-desc {
-    background-color: rgba(255, 255, 255, 0.25);
+    background-color: rgba(255, 255, 255, 0.5);
     border-radius: 14px;
     padding: 15px;
     min-height: 100px;
@@ -238,7 +239,7 @@ background: linear-gradient(146deg, rgba(230, 230, 230, 1) 0%, rgba(179, 179, 17
 }
 
 .modal-actions button {
-    background-color: rgba(255, 255, 255, 0.35);
+    background-color: rgba(255, 255, 255, 0.5);
     border: none;
     border-radius: 10px;
     cursor: pointer;
@@ -262,6 +263,7 @@ background: linear-gradient(146deg, rgba(230, 230, 230, 1) 0%, rgba(179, 179, 17
 
 .text-buttons button {
     padding: 15px 20px;
+    height: 50px;
 }
 
 /* --- Адаптивность под мобильные (по макету Desktop - 4) --- */
