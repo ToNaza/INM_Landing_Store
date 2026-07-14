@@ -484,34 +484,6 @@ background: linear-gradient(146deg, rgba(230, 230, 230, 1) 0%, rgba(179, 179, 17
     }
 }
 
-/* ↓↓↓ СВЕТЛАЯ ТЕМА (Light Mode) ↓↓↓ */
-
-body.light-mode {
-    /* Градиент из ваших комментариев */
-    background: #e6e6e6;
-    background: linear-gradient(146deg, rgba(230, 230, 230, 1) 0%, rgba(179, 179, 179, 1) 100%);
-}
-
-/* Перекрашиваем подложку (book) в серый цвет как на 2-3 скрине */
-body.light-mode .book {
-    background-color: rgba(0, 0, 0, 0.4); 
-}
-
-/* Карточки и модалки делаем светлее, чтобы текст читался лучше */
-body.light-mode .card,
-body.light-mode .modal-info,
-body.light-mode .modal-desc {
-    background-color: rgba(255, 255, 255, 0.5); 
-}
-
-/* Инвертируем цвета панели настроек в светлой теме */
-body.light-mode .settings-panel {
-    background-color: #d1d1d1;
-}
-body.light-mode .settings-row {
-    background-color: #a8a8a8;
-}
-
 /* ↑↑↑ Налаштування ↑↑↑ */
 
 
@@ -733,12 +705,7 @@ body.light-mode .settings-row {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-/* Адаптация под светлую тему */
-body.light-mode .info-modal-wrapper {
-    background-color: #ffffff;
-    color: #000000;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-}
+
 
 /* Кнопка закрытия */
 .info-modal-wrapper .close-btn {
@@ -793,12 +760,7 @@ body.light-mode .info-modal-wrapper {
     color: #ffffff;
 }
 
-body.light-mode .info-link-item {
-    color: #bebebe;
-}
-body.light-mode .info-link-item:hover {
-    color: #000000;
-}
+
 
 /* Нижний блок (FAQ скролл) */
 .info-bottom-section {
@@ -823,9 +785,7 @@ body.light-mode .info-link-item:hover {
     border-bottom: 1px solid rgba(255, 255, 255, 0.205);
 }
 
-body.light-mode .faq-item {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
+
 
 .faq-question {
     font-family: 'Jura', sans-serif;
@@ -850,9 +810,7 @@ body.light-mode .faq-item {
     background: #8c8c8c;
     border-radius: 10px;
 }
-body.light-mode .faq-container::-webkit-scrollbar-thumb {
-    background: #b0b0b0;
-}
+
 
 
 
@@ -997,14 +955,7 @@ body.light-mode .faq-container::-webkit-scrollbar-thumb {
     color: #FF0000;
 }
 
-/* Переопределение для светлой темы */
-.light-mode .status-available {
-    color: #006800; /* Более темный зеленый, который виден на сером/белом */
-}
 
-.light-mode .status-sold {
-    color: #ff0000; /* Более темный красный */
-}
 
 
 
@@ -1130,24 +1081,7 @@ body.light-mode .faq-container::-webkit-scrollbar-thumb {
     background-color: #e5e5e5;
 }
 
-/* Адаптация под СВІТЛУ тему */
-.light-mode #modal-user-news .add-item-modal {
-    background-color: #ffffff !important;
-    color: #000000 !important;
-}
 
-.light-mode .news-modal-text {
-    color: #000000 !important;
-}
-
-.light-mode #user-news-close-btn {
-    background-color: #000000 !important;
-    color: #ffffff !important;
-}
-
-.light-mode #user-news-close-btn:hover {
-    background-color: #222222 !important;
-}
 
 /* Курсор лупы при наведении на фото в новости */
 #user-news-body .news-modal-img {

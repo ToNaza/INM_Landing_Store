@@ -815,24 +815,6 @@ if (checkoutForm) {
     });
 }
 
-const lightThemeBtn = document.querySelector('.light-btn');
-const darkThemeBtn = document.querySelector('.dark-btn');
-function applyTheme(theme) {
-    if (theme === 'light') {
-        document.body.classList.add('light-mode');
-        if (lightThemeBtn) lightThemeBtn.classList.add('active');
-        if (darkThemeBtn) darkThemeBtn.classList.remove('active');
-    } else {
-        document.body.classList.remove('light-mode');
-        if (darkThemeBtn) darkThemeBtn.classList.add('active');
-        if (lightThemeBtn) lightThemeBtn.classList.remove('active');
-    }
-    localStorage.setItem('app_theme', theme);
-}
-applyTheme(localStorage.getItem('app_theme') || 'dark');
-if (lightThemeBtn) lightThemeBtn.addEventListener('click', () => applyTheme('light'));
-if (darkThemeBtn) darkThemeBtn.addEventListener('click', () => applyTheme('dark'));
-
 const buyBtn = document.getElementById('buy');
 if (buyBtn) {
     buyBtn.addEventListener('click', () => {
